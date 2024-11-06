@@ -19,7 +19,7 @@ class FantomSymbolProvider implements vscode.DocumentSymbolProvider {
 
     const classPattern = /class\s+(\w+)/g;
     const methodPattern = /(\w+)\s*\([^)]*\)\s*{/g;
-    const fieldPattern = /^\s*(\w+)\s+(\w+)\s*:=/gm;
+    // const fieldPattern = /^\s*(\w+)\s+(\w+)\s*:=\s*[^;{}]*$/gm;
 
     let match;
     let currentClassSymbol: vscode.DocumentSymbol | null = null;
@@ -41,27 +41,27 @@ class FantomSymbolProvider implements vscode.DocumentSymbolProvider {
       symbols.push(currentClassSymbol);
     }
 
-    // Match fields and add them to the current class
-    while ((match = fieldPattern.exec(text)) !== null) {
-      const fieldName = match[2];
-      const fieldType = match[1];
-      const fieldPos = document.positionAt(match.index);
+    // // Match fields and add them to the current class
+    // while ((match = fieldPattern.exec(text)) !== null) {
+    //   const fieldName = match[2];
+    //   const fieldType = match[1];
+    //   const fieldPos = document.positionAt(match.index);
 
-      const fieldSymbol = new vscode.DocumentSymbol(
-        fieldName,
-        fieldType,
-        vscode.SymbolKind.Field,
-        new vscode.Range(fieldPos, fieldPos),
-        new vscode.Range(fieldPos, fieldPos)
-      );
+    //   const fieldSymbol = new vscode.DocumentSymbol(
+    //     fieldName,
+    //     fieldType,
+    //     vscode.SymbolKind.Field,
+    //     new vscode.Range(fieldPos, fieldPos),
+    //     new vscode.Range(fieldPos, fieldPos)
+    //   );
 
-      // Add field to the current class if it exists, otherwise at root
-      if (currentClassSymbol) {
-        currentClassSymbol.children.push(fieldSymbol);
-      } else {
-        symbols.push(fieldSymbol);
-      }
-    }
+    //   // Add field to the current class if it exists, otherwise at root
+    //   if (currentClassSymbol) {
+    //     currentClassSymbol.children.push(fieldSymbol);
+    //   } else {
+    //     symbols.push(fieldSymbol);
+    //   }
+    // }
 
     // Match methods and add them to the current class
     while ((match = methodPattern.exec(text)) !== null) {
