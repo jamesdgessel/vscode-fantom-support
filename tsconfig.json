@@ -1,12 +1,18 @@
 {
 	"compilerOptions": {
-	  "module": "Node16",
-	  "target": "ES2022",
-	  "lib": ["ES2022"],
-	  "sourceMap": true,
+	  "module": "commonjs",
+	  "target": "ES2019",
+	  "lib": ["ES2019"],
+	  "outDir": "out",
 	  "rootDir": "src",
-	  "outDir": "dist",
-	  "strict": true
-	}
+	  "strict": true,
+	  "esModuleInterop": true,
+	  "sourceMap": true,
+	  "composite": true
+	},
+	"include": ["src"],
+	"references": [
+	  { "path": "./server" }
+	]
   }
   
