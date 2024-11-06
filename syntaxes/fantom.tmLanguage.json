@@ -10,27 +10,6 @@
     },
     {
       "include": "#core"
-    },
-    {
-      "include": "#annotations"
-    },
-    {
-      "include": "#function_names"
-    },
-    {
-      "include": "#class_names"
-    },
-    {
-      "include": "#field_names"
-    },
-    {
-      "include": "#type_definitions"
-    },
-    {
-      "include": "#operators"
-    },
-    {
-      "include": "#variable_names"
     }
   ],
   "repository": {
@@ -47,6 +26,17 @@
         }
       ]
     },
+    "support": {
+      "patterns": [
+        {
+          "include": "#annotations"
+        },
+        {
+          "name": "support.type.builtin.fantom",
+          "match": "\\b(Void|Bool|Int|Float|Decimal|Duration|Str|Uri|Type|Slot|Range|List|Map|This)\\b"
+        }
+      ]
+    },
     "annotations": {
       "patterns": [
         {
@@ -55,102 +45,26 @@
         }
       ]
     },
-    "variable_names": {
-      "patterns": [
-        {
-          "name": "variable.other.fantom",
-          "match": "(?<=\\|.*)\\w+(?=.*\\|)"
-        },
-        {
-          "name": "variable.other.fantom",
-          "match": "\\w+(?=\\s*:=)"
-        },
-        {
-          "name": "variable.other.fantom",
-          "match": "\\b[_a-zA-Z]\\w*\\b"
-        },
-        {
-          "name": "variable.other.fantom",
-          "match": "\\w+(?=\\s*\\=)"
-        }
-      ]
-    },
-    "function_names": {
-      "patterns": [
-        {
-          "name": "entity.name.function.fantom",
-          "match": "(?:\\b|\\.)\\b(\\w+)\\s*\\("
-        },
-        {
-          "name": "entity.name.function.fantom",
-          "match": "(?<=\\w\\.)\\w+(?=.)"
-        }
-      ]
-    },
-    "class_names": {
-      "patterns": [
-        {
-          "name": "entity.name.type.class.fantom",
-          "match": "(?<=\\bclass )\\w+|(?<=:\\s*)\\w+"
-        }
-      ]
-    },
-    "type_definitions": {
-      "patterns": [
-        {
-          "name": "storage.type.fantom",
-          "match": "\\w+(?=\\s+\\w+\\s*:=)"
-        }
-      ]
-    },
-    "operators": {
-      "patterns": [
-        {
-          "name": "keyword.operator.fantom",
-          "match": "[+\\-*/%=<>!&|]+" 
-        }
-      ]
-    },
-    "line_comment": {
-      "patterns": [
-        {
-          "match": "(//).*$\\n?",
-          "name": "comment.line.double-slash.fantom"
-        }
-      ]
-    },
-    "fandoc": {
-      "patterns": [
-        {
-          "match": "^\\s*\\*\\*.*\\n",
-          "name": "comment.block.documentation.fandoc.fantom"
-        }
-      ]
-    },
-    "block_comment": {
-      "patterns": [
-        {
-          "name": "comment.block.nested.fantom",
-          "begin": "/\\*",
-          "end": "\\*/",
-          "patterns": [
-            {
-              "include": "#block_comment"
-            }
-          ]
-        }
-      ]
-    },
-    "support": {
-      "patterns": [
-        {
-          "name": "support.type.builtin.fantom",
-          "match": "\\b(Void|Bool|Int|Float|Decimal|Duration|Str|Uri|Type|Slot|Range|List|Map|This)\\b"
-        }
-      ]
-    },
     "core": {
       "patterns": [
+        {
+          "include": "#class_names"
+        },
+        {
+          "include": "#function_names"
+        },
+        {
+          "include": "#field_names"
+        },
+        {
+          "include": "#type_definitions"
+        },
+        {
+          "include": "#variable_names"
+        },
+        {
+          "include": "#operators"
+        },
         {
           "include": "#literal_number"
         },
@@ -168,6 +82,54 @@
         },
         {
           "include": "#literal_language_variable"
+        }
+      ]
+    },
+    "class_names": {
+      "patterns": [
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "(?<=\\bclass )\\w+|(?<=:\\s*)\\w+"
+        }
+      ]
+    },
+    "function_names": {
+      "patterns": [
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<!\\.)\\b([_a-zA-Z][_a-zA-Z0-9]*)\\s*\\("
+        },
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<=\\.)\\b([_a-zA-Z][_a-zA-Z0-9]*)\\s*\\("
+        }
+      ]
+    },
+    "field_names": {
+      "patterns": [
+        {
+          "name": "variable.other.member.fantom",
+          "match": "\\b(this|self)\\.\\w+"
+        }
+      ]
+    },
+    "type_definitions": {
+      "patterns": [
+        {
+          "name": "storage.type.fantom",
+          "match": "\\w+(?=\\s+\\w+\\s*:=)"
+        },
+        {
+          "name": "storage.type.fantom",
+          "match": "\\b[A-Z][A-z]*\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.fantom",
+          "match": "[+\\-*/%=<>!&|]+"
         }
       ]
     },
@@ -412,6 +374,22 @@
         {
           "name": "variable.other.interpolated.fantom",
           "match": "(?x)\\$(\\{.*?\\}|([A-Za-z_][_\\w]*\\.?)+)"
+        }
+      ]
+    },
+    "variable_names": {
+      "patterns": [
+        {
+          "name": "variable.other.fantom",
+          "match": "(?<=\\|.*)\\w+(?=.*\\|)"
+        },
+        {
+          "name": "variable.other.assignment.fantom",
+          "match": "\\w+(?=\\s*:=)"
+        },
+        {
+          "name": "variable.other.assignment.fantom",
+          "match": "\\w+(?=\\s*=)"
         }
       ]
     }
