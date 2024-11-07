@@ -102,6 +102,10 @@
         {
           "name": "entity.name.function.fantom",
           "match": "(?<=\\.)\\b([_a-zA-Z][_a-zA-Z0-9]*)\\s*\\("
+        },
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<=\\.)[a-zA-Z][a-zA-Z0-9]*(?=\\.)"
         }
       ]
     },
@@ -122,6 +126,14 @@
         {
           "name": "storage.type.fantom",
           "match": "\\b[A-Z][A-z]*\\b"
+        }
+      ]
+    },
+    "variable_names": {
+      "patterns": [
+        {
+          "name": "variable.other.assignment.fantom",
+          "match": "\\w+(?=\\s*:=)"
         }
       ]
     },
@@ -374,22 +386,6 @@
         {
           "name": "variable.other.interpolated.fantom",
           "match": "(?x)\\$(\\{.*?\\}|([A-Za-z_][_\\w]*\\.?)+)"
-        }
-      ]
-    },
-    "variable_names": {
-      "patterns": [
-        {
-          "name": "variable.other.fantom",
-          "match": "(?<=\\|.*)\\w+(?=.*\\|)"
-        },
-        {
-          "name": "variable.other.assignment.fantom",
-          "match": "\\w+(?=\\s*:=)"
-        },
-        {
-          "name": "variable.other.assignment.fantom",
-          "match": "\\w+(?=\\s*=)"
         }
       ]
     }

@@ -5,13 +5,11 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-  // The server is implemented in node
+  // Path to the server module
   const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
-  // The debug options for the server
   const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
-  // If the extension is launched in debug mode then the debug server options are used
-  // Otherwise the run options are used
+  // Server options to run or debug the language server
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
     debug: {
@@ -21,17 +19,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  // Options to control the language client
+  // Define client options with semantic tokens legend and document selector
   const clientOptions: LanguageClientOptions = {
-    // Register the server for Fantom documents
-    documentSelector: [{ scheme: 'file', language: 'fantom' }],
+    documentSelector: [{ scheme: 'file', language: 'fantom' }], // Ensure 'fantom' matches your language ID
     synchronize: {
-      // Notify the server about file changes to '.clientrc files contained in the workspace
       fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
-    }
+    },
   };
 
-  // Create the language client and start the client.
+  // Initialize the language client
   client = new LanguageClient(
     'fantomLanguageServer',
     'Fantom Language Server',
