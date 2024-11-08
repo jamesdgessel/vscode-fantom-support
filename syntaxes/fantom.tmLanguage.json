@@ -161,7 +161,7 @@
         },
         {
           "name": "keyword.control.loop.fantom",
-          "match": "\\b(for|while|do|foreach)\\b"
+          "match": "\\b(for|while|do|foreach|each)\\b"
         },
         {
           "name": "keyword.control.switch.fantom",
@@ -368,25 +368,36 @@
     "variable_names": {
       "patterns": [
         {
-          "name": "variable.parameter.lambda.fantom",
-          "match": "/(\\|)(.*)(\\|)/"
+          "name": "keyword.control.loop.fantom",
+          "match": "\\|(?=.*\\|)|(?<=|.*)\\|"
         },
         {
-          "name": "variable.parameter.fantom",
-          "match": "imavariable"
+          "name": "variable.parameter.lambda.fantom",
+          "match": "\\|\\s*(?:\\w+\\s+)?\\s*(\\w+)\\s*\\|"
+        },
+        {
+          "name": "variable.parameter.lambda.fantom",
+          "match": "\\|\\s*(?:\\w+\\s+)?(\\w+)\\s*(\\||,)"
         }
       ]
     },
     "type_names": {
       "patterns": [
-
         {
-          "name": "storage.type.fantom",
-          "match": "\\w+(?=\\s+\\w+\\s*(:=|\\)|\\())"
+          "name": "entity.name.type.class.fantom",
+          "match": "(?<!\b(?:if|else)\\s*)\\(\\s*(\\w+)(?=\\s*\\w* |\\?)"
+        },
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "\\w+\\??(?=\\s+\\w+\\s*(:=|\\)|\\(|,))"
         },
         {
           "name": "entity.name.type.class.fantom",
           "match": "(\\w+)::(\\w+)"
+        },
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "\\b[A-Z]\\w*\\b"
         },
         {
           "name": "support.other.facet.fantom",
