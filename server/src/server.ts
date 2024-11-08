@@ -26,6 +26,63 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 // Map to track variable symbols and positions
 const variableSymbols = new Map<string, Position[]>();
 
+// Define the Token interface
+interface Token {
+    line: number;
+    character: number;
+    length: number;
+    tokenType: number;
+    tokenModifiers: number;
+}
+
+// Clear variable symbols when a new document is opened
+documents.onDidOpen((event) => {
+    variableSymbols.clear();
+    console.log(`Document opened: ${event.document.uri.split('/').pop()}, cleared variable symbols.`);
+});
+
+documents.onDidChangeContent((change) => {
+    const document = change.document;
+    console.log(`Document changed: ${document.uri.split('/').pop()}`);
+    updateVariableSymbols(document);
+});
+
+function updateVariableSymbols(document: TextDocument) {
+    // Clear entries for this document only if necessary
+    const text = document.getText();
+    const variablePattern = /\b(\w+)\s*:=/g;
+    let match: RegExpExecArray | null;
+
+    // First pass: find variable declarations
+    while ((match = variablePattern.exec(text)) !== null) {
+        const variableName = match[1];
+        const position = document.positionAt(match.index);
+
+        // Initialize the array if this is the first occurrence
+        if (!variableSymbols.has(variableName)) {
+            variableSymbols.set(variableName, []);
+        }
+        
+        // Always push the current position to capture each match
+        variableSymbols.get(variableName)!.push(position);
+        
+        console.log(`Variable found: ${variableName} at ${position.line}:${position.character}`);
+    }
+
+    // Second pass: find all occurrences of the variables
+    variableSymbols.forEach((positions, variableName) => {
+        const wordPattern = new RegExp(`\\b${variableName}\\b`, 'g');
+        let wordMatch: RegExpExecArray | null;
+
+        while ((wordMatch = wordPattern.exec(text)) !== null) {
+            const position = document.positionAt(wordMatch.index);
+            positions.push(position);
+            console.log(`Variable occurrence found: ${variableName} at ${position.line}:${position.character}`);
+        }
+    });
+}
+
+// Initialization with semantic tokens capability
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     const capabilities: InitializeResult['capabilities'] = {
         textDocumentSync: {
@@ -33,7 +90,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
             change: TextDocumentSyncKind.Incremental,
         },
         documentSymbolProvider: true,
-        semanticTokensProvider: {
+        semanticTokensProvider: {  // Enable semantic tokens provider
             legend: {
                 tokenTypes: ['variable'],
                 tokenModifiers: []
@@ -46,12 +103,12 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     return { capabilities };
 });
 
-// Document Symbol Provider
+// Document Symbol Provider for structural syntax highlighting
 connection.onDocumentSymbol(
     (params: DocumentSymbolParams, token: CancellationToken): DocumentSymbol[] => {
         const document = documents.get(params.textDocument.uri);
         if (!document) {
-            console.log("No document found for URI:", params.textDocument.uri);
+            console.log("No document found for URI:", params.textDocument.uri.split('/').pop());
             return [];
         }
 
@@ -61,6 +118,7 @@ connection.onDocumentSymbol(
         const classPattern = /class\s+(\w+)/g;
         const methodPattern = /(?:\b(?:override|static|virtual|abstract|final)\b\s+)*(\w+)\s+(\w+)\s*\([^)]*\)\s*\{/g;
         const fieldPattern = /^\s*(\w+)\s+(\w+)\s*:=/gm;
+        const variablePattern = /\b(\w+)\s*:=/g;
 
         let match: RegExpExecArray | null;
         const classSymbols: DocumentSymbol[] = [];
@@ -69,7 +127,7 @@ connection.onDocumentSymbol(
         while ((match = classPattern.exec(text)) !== null) {
             const className = match[1];
             const classStart = document.positionAt(match.index);
-            console.log(`Class found: ${className} at ${classStart.line}:${classStart.character}`);
+            //console.log(`Class found: ${className} at ${classStart.line}:${classStart.character}`);
             const braceIndex = text.indexOf('{', match.index);
             if (braceIndex === -1) {
                 console.log(`No opening brace found for class ${className}`);
@@ -110,7 +168,7 @@ connection.onDocumentSymbol(
             while ((methodMatch = methodPattern.exec(classBodyText)) !== null) {
                 const [fullMatch, returnType, methodName] = methodMatch;
                 const methodStartIndex = classBodyOffset + methodMatch.index;
-                console.log(`Method found: ${methodName} with return type ${returnType} at index ${methodStartIndex}`);
+                //console.log(`Method found: ${methodName} with return type ${returnType} at index ${methodStartIndex}`);
 
                 let methodOpenBraces = 1;
                 let methodSearchIndex = methodStartIndex + fullMatch.length - 1;
@@ -126,7 +184,7 @@ connection.onDocumentSymbol(
                 const methodEndIndex = methodSearchIndex;
 
                 if (['if', 'for', 'while', 'switch', 'catch'].includes(methodName)) {
-                    console.log(`Skipping control structure method name: ${methodName}`);
+                    //console.log(`Skipping control structure method name: ${methodName}`);
                     continue;
                 }
 
@@ -162,7 +220,7 @@ connection.onDocumentSymbol(
                 const fieldType = fieldMatch[1];
                 const fieldName = fieldMatch[2];
                 const fieldStart = document.positionAt(classBodyOffset + fieldMatch.index);
-                console.log(`Field found: ${fieldName} of type ${fieldType} at ${fieldStart.line}:${fieldStart.character}`);
+                //console.log(`Field found: ${fieldName} of type ${fieldType} at ${fieldStart.line}:${fieldStart.character}`);
 
                 const fieldSymbol: DocumentSymbol = {
                     name: fieldName,
@@ -174,6 +232,7 @@ connection.onDocumentSymbol(
 
                 if (!variableSymbols.has(fieldName)) {
                     variableSymbols.set(fieldName, []);
+                    //console.log(`New field tokenized: ${fieldName} at ${fieldStart.line}:${fieldStart.character}`);
                 }
                 variableSymbols.get(fieldName)!.push(fieldStart);
                 classSymbol.children!.push(fieldSymbol);
@@ -193,23 +252,45 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
     }
 
     const tokensBuilder = new SemanticTokensBuilder();
+    console.log(`Building semantic tokens for document: ${params.textDocument.uri.split('/').pop()}`);
 
-    // Highlight all tracked variables
+    // Collect all tokens first
+    const allTokens: Token[] = [];
+
     variableSymbols.forEach((positions, variableName) => {
         positions.forEach(position => {
-            const offset = document.offsetAt(position);
-            console.log(`Tokenizing variable: ${variableName} at ${position.line}:${position.character}`);
-            tokensBuilder.push(
-                document.positionAt(offset).line,
-                document.positionAt(offset).character,
-                variableName.length,
-                0,  // Token type index (0 for 'variable')
-                0   // Token modifiers (none)
-            );
+            allTokens.push({
+                line: position.line,
+                character: position.character,
+                length: variableName.length,
+                tokenType: 0, // 'variable'
+                tokenModifiers: 0
+            });
         });
     });
 
-    return tokensBuilder.build();
+    // Sort tokens by line and character
+    allTokens.sort((a, b) => {
+        if (a.line !== b.line) {
+            return a.line - b.line;
+        }
+        return a.character - b.character;
+    });
+
+    // Push sorted tokens
+    allTokens.forEach(token => {
+        tokensBuilder.push(
+            token.line,
+            token.character,
+            token.length,
+            token.tokenType,
+            token.tokenModifiers
+        );
+    });
+
+    const tokens = tokensBuilder.build();
+    console.log("Semantic Tokens:", tokens); // Add this line
+    return tokens;
 });
 
 // Listen to text document events
