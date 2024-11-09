@@ -21,9 +21,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Define client options with semantic tokens legend and document selector
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: 'file', language: 'fantom' }], // Ensure 'fantom' matches your language ID
+    documentSelector: [{ scheme: 'file', language: 'fantom' }],
     synchronize: {
       fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
+    },
+    initializationOptions: {
+      enableLogging: vscode.workspace.getConfiguration('fantomLanguageServer').get('enableLogging', false),
+      highlightVariableDeclarations: vscode.workspace.getConfiguration('fantomLanguageServer').get('highlightVariableDeclarations', true),
+      highlightVariableUsage: vscode.workspace.getConfiguration('fantomLanguageServer').get('highlightVariableUsage', true),
     },
   };
 
@@ -35,8 +40,26 @@ export function activate(context: vscode.ExtensionContext) {
     clientOptions
   );
 
+  // Register for diagnostics
+  client.onDidChangeState((event) => {
+    if (event.newState === 2) { // Ready
+      client.sendRequest('workspace/diagnostics', { documentSelector: [{ language: 'fantom' }] });
+    }
+  });
+
   // Start the client. This will also launch the server
   client.start();
+
+  // Listen for changes in configuration
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(event => {
+      if (event.affectsConfiguration('fantomLanguageServer')) {
+        client.sendNotification('workspace/didChangeConfiguration', {
+          settings: vscode.workspace.getConfiguration('fantomLanguageServer')
+        });
+      }
+    })
+  );
 }
 
 export function deactivate(): Thenable<void> | undefined {

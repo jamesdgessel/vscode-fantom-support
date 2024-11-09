@@ -12,7 +12,11 @@ import {
     Range,
     Position,
     SemanticTokensBuilder,
-    SemanticTokensParams
+    SemanticTokensParams,
+    Diagnostic,
+    DiagnosticSeverity,
+    Hover,
+    HoverParams
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -25,6 +29,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Map to track variable symbols and positions per document
 const variableSymbols: Map<string, Map<string, Position[]>> = new Map();
+const documentDiagnostics: Map<string, Diagnostic[]> = new Map();
 
 // Define the Token interface
 interface Token {
@@ -48,7 +53,7 @@ interface ServerSettings {
 }
 
 let settings: ServerSettings = {
-    enableLogging: false,
+    enableLogging: true,
     highlightVariableDeclarations: false,
     highlightVariableUsage: false,
 };
@@ -62,7 +67,6 @@ let settings: ServerSettings = {
  */
 function findStringRanges(text: string, document: TextDocument): Range[] {
     const ranges: Range[] = [];
-
     stringPatterns.forEach(pattern => {
         let match: RegExpExecArray | null;
         pattern.lastIndex = 0;
@@ -72,7 +76,6 @@ function findStringRanges(text: string, document: TextDocument): Range[] {
             ranges.push(Range.create(start, end));
         }
     });
-
     return ranges;
 }
 
@@ -113,13 +116,11 @@ function getWordRangeAtPosition(document: TextDocument, position: Position): Ran
     const offset = document.offsetAt(position);
     if (offset >= text.length) { return null; }
 
-    // Find the start of the word
     let start = offset;
     while (start > 0 && /\w/.test(text[start - 1])) {
         start--;
     }
 
-    // Find the end of the word
     let end = offset;
     while (end < text.length && /\w/.test(text[end])) {
         end++;
@@ -137,14 +138,61 @@ documents.onDidOpen(event => {
     }
 });
 
-// Update variable symbols when the document content changes
+// Update variable symbols and linting on content change
 documents.onDidChangeContent(change => {
     const document = change.document;
     if (settings.enableLogging) {
         connection.console.log(`Document changed: ${getDocumentName(document.uri)}`);
     }
     updateVariableSymbols(document);
+    validateNamingConventions(document); // Lint on content change
 });
+
+/**
+ * Validates naming conventions based on Fantom linting rules.
+ * @param document The TextDocument object.
+ */
+function validateNamingConventions(document: TextDocument) {
+    const diagnostics: Diagnostic[] = [];
+    const text = document.getText();
+
+    const typePattern = /\bclass\s+([A-Z][a-zA-Z0-9]*)\b/g;
+    const slotPattern = /\b(?:const|field|method)\s+([a-z][a-zA-Z0-9]*)\b/g;
+
+    let match: RegExpExecArray | null;
+    while ((match = typePattern.exec(text)) !== null) {
+        const range = Range.create(
+            document.positionAt(match.index),
+            document.positionAt(match.index + match[1].length)
+        );
+        if (!/^[A-Z][a-zA-Z0-9]*$/.test(match[1])) {
+            diagnostics.push({
+                severity: DiagnosticSeverity.Warning,
+                range,
+                message: `Type names should be UpperCamelCase.`,
+                source: 'fantom-linter'
+            });
+        }
+    }
+
+    while ((match = slotPattern.exec(text)) !== null) {
+        const range = Range.create(
+            document.positionAt(match.index),
+            document.positionAt(match.index + match[1].length)
+        );
+        if (!/^[a-z][a-zA-Z0-9]*$/.test(match[1])) {
+            diagnostics.push({
+                severity: DiagnosticSeverity.Warning,
+                range,
+                message: `Slot names should be lowerCamelCase.`,
+                source: 'fantom-linter'
+            });
+        }
+    }
+
+    documentDiagnostics.set(document.uri, diagnostics);
+    connection.sendDiagnostics({ uri: document.uri, diagnostics });
+}
 
 /**
  * Function to update variable symbols for a given document
@@ -152,41 +200,32 @@ documents.onDidChangeContent(change => {
 function updateVariableSymbols(document: TextDocument): void {
     const uri = document.uri;
     const text = document.getText();
-    const variablePattern = /\b(\w+)\b(?=\s*:=)/g; // Refined regex to match variable names only
+    const variablePattern = /\b(\w+)\b(?=\s*:=)/g; 
     let match: RegExpExecArray | null;
 
-    // Identify all string literal ranges in the document
     const stringRanges = findStringRanges(text, document);
 
-    // Initialize or clear the map for the current document
     if (!variableSymbols.has(uri)) {
         variableSymbols.set(uri, new Map());
     }
     const docVariableSymbols = variableSymbols.get(uri)!;
-    docVariableSymbols.clear(); // Clear previous symbols to avoid duplication
+    docVariableSymbols.clear();
 
-    // First pass: find variable declarations
     while ((match = variablePattern.exec(text)) !== null) {
         const variableName = match[1];
         const variablePosition = document.positionAt(match.index);
 
-        // Check if the variable position is within any string literal
         if (isPositionInRanges(variablePosition, stringRanges)) {
-            // continue; // Skip variables within strings
+            continue; 
         }
 
-        // Initialize the array if this is the first occurrence
         if (!docVariableSymbols.has(variableName)) {
             docVariableSymbols.set(variableName, []);
         }
 
-        // Push the current position to capture each match
         docVariableSymbols.get(variableName)!.push(variablePosition);
-
-        // connection.console.log(`Variable found: ${variableName} at ${variablePosition.line}:${variablePosition.character}`);
     }
 
-    // Second pass: find all occurrences of the variables
     docVariableSymbols.forEach((positions, variableName) => {
         const wordPattern = new RegExp(`\\b${escapeRegExp(variableName)}\\b`, 'g');
         let wordMatch: RegExpExecArray | null;
@@ -194,18 +233,14 @@ function updateVariableSymbols(document: TextDocument): void {
         while ((wordMatch = wordPattern.exec(text)) !== null) {
             const position = document.positionAt(wordMatch.index);
 
-            // Check if the position is within any string literal
             if (isPositionInRanges(position, stringRanges)) {
-                // connection.console.log(`Skipping occurrence of variable '${variableName}' at ${position.line}:${position.character} (within a string literal)`);
-                continue; // Skip occurrences within strings
+                continue;
             }
 
-            // Check if the position is already captured
             const isAlreadyCaptured = positions.some(pos => pos.line === position.line && pos.character === position.character);
 
             if (!isAlreadyCaptured) {
                 positions.push(position);
-                // connection.console.log(`Variable occurrence found: ${variableName} at ${position.line}:${position.character}`);
             }
         }
     });
@@ -233,16 +268,17 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
             change: TextDocumentSyncKind.Incremental,
         },
         documentSymbolProvider: true,
-        semanticTokensProvider: {  // Enable semantic tokens provider
+        semanticTokensProvider: {
             legend: {
-                tokenTypes: ['variable'], // Ensure 'variable' is distinct
+                tokenTypes: ['variable'], 
                 tokenModifiers: []
             },
             range: false,
             full: {
                 delta: false
             }
-        }
+        },
+        hoverProvider: true // Add hover provider capability
     };
     connection.console.log("Language server initialized with capabilities.");
     return { capabilities };
@@ -263,7 +299,7 @@ connection.onDocumentSymbol(
     (params: DocumentSymbolParams, token: CancellationToken): DocumentSymbol[] => {
         const document = documents.get(params.textDocument.uri);
         if (!document) {
-            connection.console.warn("No document found for URI:"+getDocumentName(params.textDocument.uri));
+            connection.console.warn("No document found for URI:" + getDocumentName(params.textDocument.uri));
             return [];
         }
 
@@ -277,7 +313,6 @@ connection.onDocumentSymbol(
         let match: RegExpExecArray | null;
         const classSymbols: DocumentSymbol[] = [];
 
-        // Match all classes in the document
         while ((match = classPattern.exec(text)) !== null) {
             const className = match[1];
             const classStart = document.positionAt(match.index);
@@ -417,7 +452,7 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
             const wordRange = getWordRangeAtPosition(document, position);
             if (wordRange && document.getText(wordRange) === variableName) {
                 if (isPositionInRanges(position, stringRanges)) {
-                    return; // Skip tokens within strings
+                    return; 
                 }
 
                 if (settings.highlightVariableDeclarations || !isVariableDeclaration(position, text)) {
@@ -425,7 +460,7 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
                         line: position.line,
                         character: position.character,
                         length: variableName.length,
-                        tokenType: 0, // 'variable'
+                        tokenType: 0,
                         tokenModifiers: 0
                     });
                 }
@@ -433,7 +468,6 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
         });
     });
 
-    // Sort tokens by line and character
     allTokens.sort((a, b) => {
         if (a.line !== b.line) {
             return a.line - b.line;
@@ -441,7 +475,6 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
         return a.character - b.character;
     });
 
-    // Push sorted tokens
     allTokens.forEach(token => {
         tokensBuilder.push(
             token.line,
@@ -477,6 +510,33 @@ function isVariableDeclaration(position: Position, text: string): boolean {
     }
     return false;
 }
+
+// Hover diagnostics for linting feedback on hover
+connection.onHover((params: HoverParams): Hover | null => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {return null;}
+
+    const diagnostics = documentDiagnostics.get(params.textDocument.uri) || [];
+    const position = params.position;
+
+    for (const diagnostic of diagnostics) {
+        if (
+            position.line === diagnostic.range.start.line &&
+            position.character >= diagnostic.range.start.character &&
+            position.character <= diagnostic.range.end.character
+        ) {
+            return {
+                contents: {
+                    kind: 'markdown',
+                    value: diagnostic.message,
+                },
+                range: diagnostic.range
+            };
+        }
+    }
+
+    return null;
+});
 
 // Listen to text document events
 documents.listen(connection);
