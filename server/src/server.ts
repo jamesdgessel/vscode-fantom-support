@@ -513,6 +513,8 @@ function isVariableDeclaration(position: Position, text: string): boolean {
 
 // Hover diagnostics for linting feedback on hover
 connection.onHover((params: HoverParams): Hover | null => {
+    console.log("Hover request received.");
+    console.log(params);
     const document = documents.get(params.textDocument.uri);
     if (!document) {return null;}
 
