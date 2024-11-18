@@ -18,7 +18,7 @@ export async function provideHoverInfo(
         }
         return null;
     }
-    if (settings.debug) {console.log(`Document found: ${doc.uri.split('/').pop()}`);}
+    // if (settings.debug) {console.log(`Document found: ${doc.uri.split('/').pop()}`);}
 
     const tokens = getDocumentTokens(doc.uri);
     if (!tokens) {

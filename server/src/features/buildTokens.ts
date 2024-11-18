@@ -11,10 +11,24 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
     const settings = getSettings();
     const text = doc.getText();
     const tokensBuilder = new InlineSemanticTokensBuilder();
+    const scopeStack: { type: 'class' | 'method' | 'block'; lineStart: number }[] = [];
 
     if (settings.debug) {
         connection.console.log(` [start] Building semantic tokens for  ${doc.uri.split('/').pop()}`);
     }
+
+    const isInMethodScope = (line: number): boolean => {
+        for (let i = scopeStack.length - 1; i >= 0; i--) {
+            const scope = scopeStack[i];
+            if (scope.type === 'method' && line >= scope.lineStart) {
+                return true;
+            }
+            if (scope.type === 'class') {
+                break; // Stop if we reach a class
+            }
+        }
+        return false;
+    };
 
     const lines = text.split(/\r?\n/);
     lines.forEach((line, lineIndex) => {
@@ -26,12 +40,13 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
                 connection.console.log(`[CLASS]        ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.class)}, 0] Full Match: ${JSON.stringify(match)}`);
             }
             tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.class), 0);
+            scopeStack.push({ type: 'class', lineStart: lineIndex });
         }
 
         // Match constructor
         if ((match = /(?:new\s+)(make)/gm.exec(line)) !== null) {
             if (settings.debug) {
-                connection.console.log(` [-make-]        ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.class)}, 0] Full Match: ${JSON.stringify(match)}`);
+                connection.console.log(` [-make-]      ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.class)}, 0] Full Match: ${JSON.stringify(match)}`);
             }
             tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
         }
@@ -42,17 +57,32 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
                 connection.console.log(` [METHOD]      ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.method)}, 0]   ${JSON.stringify(match)}`);
             }
             tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
+            scopeStack.push({ type: 'method', lineStart: lineIndex });
         }
 
         // Match fields
         while ((match = fantomTokenRegex.fieldPattern.exec(line)) !== null) {
-            if (settings.debug) {
-                connection.console.log(` [FIELD]       ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.field)}, 0]   ${JSON.stringify(match)}`);
+            if (!isInMethodScope(lineIndex)) {
+                if (settings.debug) {
+                    connection.console.log(` [FIELD]       ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.field)}, 0]   ${JSON.stringify(match)}`);
+                }
+                tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
+            } else if (settings.debug) {
+                // connection.console.log(` [FIELD]       ignored ${match[1]} @ [${lineIndex}, ${match.index}]`);
             }
-            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
         }
 
+        // Handle opening and closing braces
+        const openBraces = (line.match(/{/g) || []).length;
+        const closeBraces = (line.match(/}/g) || []).length;
 
+        for (let i = 0; i < openBraces; i++) {
+            scopeStack.push({ type: 'block', lineStart: lineIndex });
+        }
+
+        for (let i = 0; i < closeBraces; i++) {
+            scopeStack.pop();
+        }
     });
 
     const tokens = tokensBuilder.build();
@@ -66,6 +96,7 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
     documentTokens.set(doc.uri, tokens);
     return tokens;
 }
+
 
 // Retrieves pre-built tokens for other features
 export function getDocumentTokens(uri: string): SemanticTokens | undefined {

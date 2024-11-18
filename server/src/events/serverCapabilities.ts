@@ -22,6 +22,5 @@ export function initializeCapabilities(connection: Connection, settings: any): I
         hoverProvider: true,
     };
 
-    connection.console.log("Language server initialized with capabilities.");
     return { capabilities };
 }

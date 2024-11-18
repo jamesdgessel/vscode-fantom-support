@@ -16,10 +16,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Import event handlers
 import { initializeCapabilities } from './events/serverCapabilities';
-import { handleDocumentOpen } from './events/documentOpen';
-import { handleDocumentChange } from './events/documentChange';
 import { handleDocumentSave } from './events/documentSave';
-import { handleDocumentClose } from './events/documentClose';
 import { handleConfigChange } from './events/configChange';
 
 // Import feature modules
@@ -45,6 +42,7 @@ let settings = initializeSettings(connection);
 
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
+    console.log(' -------------------- Fantom server initialized ---------- ');
     initializeCapabilities(connection, settings);
     return {
         capabilities: {
@@ -64,47 +62,51 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 // Handle document open event
 documents.onDidOpen(event => {
-    handleDocumentOpen(event, connection);
-    buildSemanticTokens(event.document, connection);               // Uses centralized settings
+    console.log(' -------------------- Document opened ---------- ');
+    // buildSemanticTokens(event.document, connection);               // Uses centralized settings
     // applySyntaxHighlighting(event.document, connection);           // Uses centralized settings
-    generateCodeOutline(event.document, connection);               // Uses centralized settings
+    // generateCodeOutline(event.document, connection);               // Uses centralized settings
     // initializeSidebarDocs(connection);                             // No changes needed
     // lintCode(event.document, connection);                          // Uses centralized settings
 });
 
 // Handle document change event
 documents.onDidChangeContent(change => {
-    handleDocumentChange(change, connection);            // Uses centralized settings
-    buildSemanticTokens(change.document, connection);              // Uses centralized settings
+    console.log(' -------------------- Document content changed ---------- ');
+    // buildSemanticTokens(change.document, connection);              // Uses centralized settings
     // applySyntaxHighlighting(change.document, connection);          // Uses centralized settings
-    generateCodeOutline(change.document, connection);              // Uses centralized settings
+    // generateCodeOutline(change.document, connection);              // Uses centralized settings
     // lintCode(change.document, connection);                         // Uses centralized settings
 });
 
 // Handle document save event
 documents.onDidSave(event => {
+    console.log(' -------------------- Document saved ---------- ');
     handleDocumentSave(event, connection);
     // lintCode(event.document, connection);                          // Uses centralized settings
 });
 
 // Handle document close event
 documents.onDidClose(event => {
-    handleDocumentClose(event, connection);                        // Clean up resources on close
+    console.log(' -------------------- Document closed ---------- ');
 });
 
 // Handle configuration change
 connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
+    console.log(' -------------------- Config changed  ---------- ');
     settings = updateSettings(change, connection);
     handleConfigChange(change, connection);
 });
 
 // Provide document symbols for syntax highlighting
 connection.onDocumentSymbol((params: DocumentSymbolParams) => {
+    console.log(' -------------------- Document Symbol ---------- ');
     return provideDocumentSymbols(params.textDocument.uri);
 });
 
 // Build semantic tokens for enhanced syntax highlighting
 connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
+    console.log(' -------------------- Tokens requested ---------- ');
     const doc = documents.get(params.textDocument.uri);
     if (!doc) {
         return { data: [] };
@@ -113,9 +115,9 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
 });
 
 // Provide hover information for symbols
-connection.onHover((params: HoverParams) => {
-    return provideHoverInfo(params, documents, connection);
-});
+// connection.onHover((params: HoverParams) => {
+//     return provideHoverInfo(params, documents, connection);
+// });
 
 // // Provide autocomplete suggestions
 // connection.onCompletion((params: CompletionParams) => {
