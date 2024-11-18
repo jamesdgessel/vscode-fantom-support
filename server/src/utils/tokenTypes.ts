@@ -16,8 +16,8 @@ export const tokenLegend = {
 
 // Regular expressions for Fantom syntax elements, reusable across features
 export const fantomTokenRegex = {
-    classPattern: /class\s+(\w+)/g,            // Matches class declarations
-    methodPattern: /(?:\b(?:override|static|virtual|abstract|final)\b\s+)*(\w+)\s+(\w+)\s*\([^)]*\)\s*\{/g,  // Matches method declarations
-    variablePattern:  /\b(\w+)\b(?=\s*:=)/g,       // Matches variable declarations
-    fieldPattern: /^\s*(\w+)\s+(\w+)\s*:=/gm,
+    classPattern: /(?:class\s+)(\w+)/g,            // Matches class declarations
+    methodPattern: /(?:\b(?:override|static|virtual|abstract|final)\b)*\s+(?:[A-Z]\w*)(?:\[\]|)\s+(\w+)\s*(?:\([^)]*\)\s*\{)/g,  // Matches method declarations
+    variablePattern: /^\s*(\w+)\s+(\w+)\s*:=/gm,       // Matches variable declarations
+    fieldPattern: /^\s*(?:\b[A-Z]\w*\b)(?:\[\]|)\s+(\w+)(?:\s*:=)/gm,
 };

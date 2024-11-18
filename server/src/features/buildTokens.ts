@@ -1,4 +1,4 @@
-import { SemanticTokens, Connection } from 'vscode-languageserver';
+import { SemanticTokens, Connection, DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { tokenLegend, fantomTokenRegex, tokenTypes } from '../utils/tokenTypes';
 import { getSettings } from '../utils/settingsManager';
@@ -8,13 +8,12 @@ const documentTokens = new Map<string, SemanticTokens>();
 
 // Main function to build and store tokens
 export function buildSemanticTokens(doc: TextDocument, connection: Connection): SemanticTokens {
-
     const settings = getSettings();
     const text = doc.getText();
     const tokensBuilder = new InlineSemanticTokensBuilder();
 
     if (settings.debug) {
-        connection.console.log(` -building semantic tokens for  ${doc.uri.split('/').pop()}`);
+        connection.console.log(` [start] Building semantic tokens for  ${doc.uri.split('/').pop()}`);
     }
 
     const lines = text.split(/\r?\n/);
@@ -23,51 +22,48 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
 
         // Match classes
         if ((match = fantomTokenRegex.classPattern.exec(line)) !== null) {
-            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.class), 0);
             if (settings.debug) {
-                // connection.console.log(`class: ${match[1]}: ${lineIndex}`);
+                connection.console.log(`[CLASS]        ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.class)}, 0] Full Match: ${JSON.stringify(match)}`);
             }
+            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.class), 0);
+        }
+
+        // Match constructor
+        if ((match = /(?:new\s+)(make)/gm.exec(line)) !== null) {
+            if (settings.debug) {
+                connection.console.log(` [-make-]        ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.class)}, 0] Full Match: ${JSON.stringify(match)}`);
+            }
+            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
         }
 
         // Match methods
         while ((match = fantomTokenRegex.methodPattern.exec(line)) !== null) {
-            tokensBuilder.push(lineIndex, match.index, match[2].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
             if (settings.debug) {
-                // connection.console.log(`method: ${match[2]}:${lineIndex}`);
+                connection.console.log(` [METHOD]      ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.method)}, 0]   ${JSON.stringify(match)}`);
             }
+            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
         }
 
         // Match fields
         while ((match = fantomTokenRegex.fieldPattern.exec(line)) !== null) {
-            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
             if (settings.debug) {
-                // connection.console.log(`field: ${match[1]}:${lineIndex}`);
+                connection.console.log(` [FIELD]       ${match[1].padEnd(20)} @ [${lineIndex}, ${match.index}, ${match[1].length}, ${tokenLegend.tokenTypes.indexOf(tokenTypes.field)}, 0]   ${JSON.stringify(match)}`);
             }
+            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
         }
 
-        // Match variables
-        while ((match = fantomTokenRegex.variablePattern.exec(line)) !== null) {
-            tokensBuilder.push(lineIndex, match.index, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
-            if (settings.debug) {
-                // connection.console.log(`var: ${match[1]}:${lineIndex}`);
-            }
-        }
+
     });
 
-    // Build tokens data; return empty tokens if no tokens were matched
     const tokens = tokensBuilder.build();
-    const fileName = doc.uri.split('/').pop();
     if (tokens.data.length === 0) {
         if (settings.debug) {
-            connection.console.log(`No tokens found for document: ${fileName}, returning empty tokens.`);
+            connection.console.log(`No tokens found for document: ${doc.uri.split('/').pop()}, returning empty tokens.`);
         }
         return { data: [] };
     }
 
     documentTokens.set(doc.uri, tokens);
-    if (settings.debug) {
-        connection.console.log(` -tokens built and stored for document: ${fileName}`);
-    }
     return tokens;
 }
 
@@ -85,26 +81,24 @@ export function clearDocumentTokens(uri: string): void {
 class InlineSemanticTokensBuilder {
     private data: number[] = [];
 
-    // Adds a token entry
     push(line: number, startChar: number, length: number, tokenType: number, tokenModifiers: number) {
         this.data.push(line, startChar, length, tokenType, tokenModifiers);
     }
 
-    // Builds the final SemanticTokens object
     build(): SemanticTokens {
         return { data: this.data };
     }
 }
 
-import { DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver';
-
 // Provide document symbols in the required format for onDocumentSymbol
 export function provideDocumentSymbols(uri: string): DocumentSymbol[] | undefined {
     const tokens = getDocumentTokens(uri);
-    if (!tokens) {return undefined;}
+    if (!tokens) {
+        return undefined;
+    }
 
-    // Map tokens to DocumentSymbol array
-    const symbols: DocumentSymbol[] = [];
+    const classSymbols: Map<string, DocumentSymbol> = new Map();
+
     for (let i = 0; i < tokens.data.length; i += 5) {
         const line = tokens.data[i];
         const startChar = tokens.data[i + 1];
@@ -112,9 +106,9 @@ export function provideDocumentSymbols(uri: string): DocumentSymbol[] | undefine
         const tokenType = tokens.data[i + 3];
 
         const range = Range.create(line, startChar, line, startChar + length);
-        let kind: SymbolKind;
+        let kind: SymbolKind | undefined;
+        let name = `Token ${i / 5}`;
 
-        // Map token type to a SymbolKind
         switch (tokenType) {
             case tokenLegend.tokenTypes.indexOf(tokenTypes.class):
                 kind = SymbolKind.Class;
@@ -126,11 +120,33 @@ export function provideDocumentSymbols(uri: string): DocumentSymbol[] | undefine
                 kind = SymbolKind.Field;
                 break;
             default:
-                kind = SymbolKind.Variable;
+                continue;
         }
 
-        symbols.push(DocumentSymbol.create(`Token ${i / 5}`, "", kind, range, range));
+        const symbol: DocumentSymbol = {
+            name,
+            kind,
+            range,
+            selectionRange: range,
+            children: [],
+        };
+
+        if (kind === SymbolKind.Class) {
+            classSymbols.set(name, symbol);
+        } else if (kind === SymbolKind.Method || kind === SymbolKind.Field) {
+            const parentClass = Array.from(classSymbols.values()).find(
+                (cls) =>
+                    cls.range.start.line <= line &&
+                    cls.range.end.line >= line
+            );
+
+            if (parentClass) {
+                if (parentClass.children) {
+                    parentClass.children.push(symbol);
+                }
+            }
+        }
     }
 
-    return symbols;
+    return Array.from(classSymbols.values());
 }

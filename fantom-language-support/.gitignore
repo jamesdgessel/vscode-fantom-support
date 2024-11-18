@@ -1,0 +1,24 @@
+# Ignore node_modules and build directories
+node_modules/
+dist/
+out/
+
+# Ignore compiled JavaScript and map files
+*.js
+*.js.map
+
+# Logs
+*.log
+
+# VS Code test output
+.vscode-test/
+
+# Local environment and IDE-specific files
+.vscodeignore
+.vscode-test.mjs
+
+# Dependency lock file (optional)
+package-lock.json
+
+#vscode 
+.vscode/
