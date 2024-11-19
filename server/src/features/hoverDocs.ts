@@ -1,34 +1,55 @@
 import { Hover, HoverParams, Connection, TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
-import { runFanFile } from '../utils/fanUtils';
 import { tokenLegend } from '../utils/tokenTypes';
 import { getSettings } from '../utils/settingsManager';
 
-// Helper function to log debug messages
-const logDebug = (settings: ReturnType<typeof getSettings>, connection: Connection, message: string) => {
+/**
+ * Logs debug messages if debugging is enabled in settings.
+ * @param settings - The current settings.
+ * @param connection - The language server connection.
+ * @param message - The debug message to log.
+ */
+const logDebug = (
+    settings: ReturnType<typeof getSettings>,
+    connection: Connection,
+    message: string
+) => {
     if (settings.debug) {
         connection.console.log(message);
     }
 };
 
-// Helper function to extract the hovered word based on position
-const getHoveredWord = (text: string, offset: number): string => {
+/**
+ * Extracts the word under the cursor based on the provided offset.
+ * @param text - The entire text of the document.
+ * @param offset - The character offset of the cursor position.
+ * @returns An object containing the hovered word and its start offset.
+ */
+const getHoveredWord = (text: string, offset: number): { word: string; start: number } => {
     let start = offset;
     let end = offset;
 
+    // Expand to the start of the word
     while (start > 0 && /\w/.test(text[start - 1])) {
         start--;
     }
 
+    // Expand to the end of the word
     while (end < text.length && /\w/.test(text[end])) {
         end++;
     }
 
-    return text.slice(start, end);
+    const word = text.slice(start, end);
+    return { word, start };
 };
 
-// Helper function to collect documentation comments above a token
+/**
+ * Collects documentation comments (fandoc) above a token declaration.
+ * @param doc - The text document.
+ * @param declarationLine - The line number where the token is declared.
+ * @returns The concatenated documentation comments.
+ */
 const collectDocComments = (doc: TextDocument, declarationLine: number): string => {
     let docComments = '';
     for (let line = declarationLine - 1; line >= 0; line--) {
@@ -37,15 +58,20 @@ const collectDocComments = (doc: TextDocument, declarationLine: number): string 
             end: { line, character: Number.MAX_SAFE_INTEGER }
         }).trim();
         if (lineText.startsWith('**')) {
-            docComments = `${lineText}\n${docComments}`;
+            docComments = `${lineText.replace(/\*\*/g, '\n\n')}\n${docComments}`;
         } else {
             break;
         }
     }
-    return docComments;
+    return docComments.trim();
 };
 
-// Helper function to collect inline comments above a token
+/**
+ * Collects inline comments above a token declaration.
+ * @param doc - The text document.
+ * @param declarationLine - The line number where the token is declared.
+ * @returns The concatenated inline comments.
+ */
 const collectInlineComments = (doc: TextDocument, declarationLine: number): string => {
     let inlineComments = '';
     for (let line = declarationLine - 1; line >= 0; line--) {
@@ -66,22 +92,13 @@ const collectInlineComments = (doc: TextDocument, declarationLine: number): stri
     return inlineComments;
 };
 
-// Helper function to extract method parameters from a declaration line
-const extractMethodParameters = (doc: TextDocument, declarationLine: number, tokenText: string): string[] => {
-    const lineText = doc.getText({
-        start: { line: declarationLine, character: 0 },
-        end: { line: declarationLine, character: Number.MAX_SAFE_INTEGER }
-    });
-    const methodRegex = new RegExp(`\\b${tokenText}\\b\\s*\\(([^)]*)\\)`);
-    const match = methodRegex.exec(lineText);
-    if (match && match[1]) {
-        // Split parameters by comma and trim whitespace
-        return match[1].split(',').map(param => param.trim()).filter(param => param.length > 0);
-    }
-    return [];
-};
-
-// Helper function to find all instances of a word
+/**
+ * Finds all instances of a word within the document and returns their line numbers.
+ * @param text - The entire text of the document.
+ * @param word - The word to search for.
+ * @param doc - The text document.
+ * @returns An array of line numbers where the word is found.
+ */
 const findWordInstances = (text: string, word: string, doc: TextDocument): number[] => {
     const instances: number[] = [];
     const regex = new RegExp(`\\b${word}\\b`, 'g');
@@ -96,12 +113,23 @@ const findWordInstances = (text: string, word: string, doc: TextDocument): numbe
     return instances;
 };
 
-// Helper function to generate markdown links for lines
+/**
+ * Generates markdown-formatted links for the provided line numbers.
+ * @param lines - An array of line numbers.
+ * @param fileUri - The URI of the file.
+ * @returns A string of markdown links separated by commas.
+ */
 const generateMarkdownLinks = (lines: number[], fileUri: string): string => {
-    return lines.map(line => `[Line ${line + 1}](${fileUri}#L${line + 1})`).join(', ');
+    return lines.map(line => `[${line + 1}](${fileUri}#L${line + 1})`).join(', ');
 };
 
-// Main function to provide hover information
+/**
+ * Provides hover information for a given position in the document.
+ * @param params - The hover parameters.
+ * @param documents - The collection of text documents.
+ * @param connection - The language server connection.
+ * @returns A Hover object containing the markdown information or null.
+ */
 export async function provideHoverInfo(
     params: HoverParams,
     documents: TextDocuments<TextDocument>,
@@ -124,7 +152,7 @@ export async function provideHoverInfo(
     const position = params.position;
     const offset = doc.offsetAt(position);
     const text = doc.getText();
-    const hoveredWord = getHoveredWord(text, offset);
+    const { word: hoveredWord, start: wordStart } = getHoveredWord(text, offset);
 
     if (!hoveredWord) {
         logDebug(settings, connection, 'No word found at hover position.');
@@ -133,18 +161,45 @@ export async function provideHoverInfo(
 
     logDebug(settings, connection, `Hovered word: ${hoveredWord}`);
 
+    // Check if the word starts with a capital letter or is prefixed with '.'
+    const isCapitalized = /^[A-Z]/.test(hoveredWord);
+    const isPrefixedWithDot = wordStart > 0 && text[wordStart - 1] === '.';
+
+    if (isCapitalized || isPrefixedWithDot) {
+        return {
+            contents: {
+                kind: 'markdown',
+                value: `[Lookup ${hoveredWord} in Fantom](#)`
+            }
+        };
+    }
+
     // Iterate over tokens to find a match
     for (let i = 0; i < tokens.data.length; i += 5) {
         const line = tokens.data[i];
         const character = tokens.data[i + 1];
         const length = tokens.data[i + 2];
         const tokenTypeIndex = tokens.data[i + 3];
+        const scope = String(tokens.data[i + 4]); // Ensure scope is string
 
         const tokenStart = doc.offsetAt({ line, character });
         const tokenEnd = tokenStart + length;
         const tokenText = text.slice(tokenStart, tokenEnd);
 
         if (hoveredWord === tokenText) {
+            // Check if the token has the 'entity.name.function' scope
+            const isFunctionEntity = scope === 'entity.name.function';
+
+            if (isFunctionEntity) {
+                // Return Fantom lookup placeholder
+                return {
+                    contents: {
+                        kind: 'markdown',
+                        value: `[Lookup ${hoveredWord} in Fantom](#)`
+                    }
+                };
+            }
+
             const tokenType = tokenLegend.tokenTypes[tokenTypeIndex];
             const declarationLine = line;
 
@@ -152,217 +207,51 @@ export async function provideHoverInfo(
             const inlineComments = collectInlineComments(doc, declarationLine);
             const fileUri = params.textDocument.uri;
 
-            let parametersMarkdown = '';
-            if (tokenType.toLowerCase().includes('method')) { // Adjust based on actual tokenType
-                const parameters = extractMethodParameters(doc, declarationLine, tokenText);
-                if (parameters.length > 0) {
-                    parametersMarkdown = `**Parameters:** ${parameters.join(', ')}`;
-                }
-            }
-
             // Find all instances excluding the declaration
             const instances = findWordInstances(text, hoveredWord, doc).filter(lineNum => lineNum !== declarationLine);
             const uniqueInstances = Array.from(new Set(instances));
+            const usageLines = uniqueInstances.map(lineNum => lineNum + 1); // Convert to 1-based indexing
             const links = generateMarkdownLinks(uniqueInstances, fileUri);
+
+            // Get the entire declaration line text
+            const declarationLineText = doc.getText({
+                start: { line: declarationLine, character: 0 },
+                end: { line: declarationLine, character: Number.MAX_SAFE_INTEGER }
+            }).trim();
 
             // Assemble markdown content with consistent order
             const markdownLines: string[] = [];
 
-            // Declaration Section
-            markdownLines.push(`**Declaration:** [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1})`);
-
-            // Documentation Comments (fandoc)
+            // Documentation Comments (fandoc) - preserve new lines
             if (docComments) {
                 markdownLines.push(docComments);
             }
-
-            // Parameters (for methods)
-            if (parametersMarkdown) {
-                markdownLines.push(parametersMarkdown);
-            }
-
-            // Usage Section
-            markdownLines.push(`**Usage:** ${links || 'None'}`);
 
             // Inline Comments
             if (inlineComments) {
                 markdownLines.push(`**Comments:**\n${inlineComments}`);
             }
 
-            // Return Hover for Declaration
-            if (declarationLine === position.line) {
-                return {
-                    contents: {
-                        kind: 'markdown',
-                        value: markdownLines.join('\n\n')
-                    }
-                };
+            // Declaration Line Text in code block
+            markdownLines.push(`\`${declarationLineText}\``);
+
+            // Consolidated Type and Declaration Line with Usage
+            if (usageLines.length > 0) {
+                markdownLines.push(`${tokenType} *decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: ${links}*`);
             } else {
-                // For usages, include Type and ensure consistent order
-                const usageMarkdownLines: string[] = [];
-
-                // Type Section
-                usageMarkdownLines.push(`**Type:** ${tokenType}`);
-
-                // Declaration Section
-                usageMarkdownLines.push(`**Declaration:** [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1})`);
-
-                // Documentation Comments (fandoc)
-                if (docComments) {
-                    usageMarkdownLines.push(docComments);
-                }
-
-                // Parameters (for methods)
-                if (parametersMarkdown) {
-                    usageMarkdownLines.push(parametersMarkdown);
-                }
-
-                // Inline Comments
-                if (inlineComments) {
-                    usageMarkdownLines.push(`**Comments:**\n${inlineComments}`);
-                }
-
-                // Usage Section
-                usageMarkdownLines.push(`**Usage:** ${links || 'None'}`);
-
-                return {
-                    contents: {
-                        kind: 'markdown',
-                        value: usageMarkdownLines.join('\n\n')
-                    }
-                };
+                markdownLines.push(`${tokenType} *decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: None*`);
             }
-        }
-    }
 
-    // Custom logic if no token matches
-    if (/^[a-z]/.test(hoveredWord)) {
-        const beforeChar = text[offset - 1] || '';
-        const afterChar = text[offset] || '';
-
-        if (beforeChar === '.' || afterChar === '(') {
-            logDebug(settings, connection, `Word is preceded by '.' or followed by '('. Performing lookup in Fantom.`);
             return {
                 contents: {
                     kind: 'markdown',
-                    value: `[Lookup ${hoveredWord} in Fantom](#)`
+                    value: markdownLines.join('\n\n')
                 }
             };
         }
-
-        const instances = findWordInstances(text, hoveredWord, doc);
-        if (instances.length > 0) {
-            const uniqueInstances = Array.from(new Set(instances));
-            const fileUri = params.textDocument.uri;
-            const links = generateMarkdownLinks(uniqueInstances, fileUri);
-
-            logDebug(settings, connection, `Found instances for word: ${hoveredWord}`);
-
-            // Check for declaration on the same line
-            const lineText = doc.getText({
-                start: { line: position.line, character: 0 },
-                end: { line: position.line, character: Number.MAX_SAFE_INTEGER }
-            });
-
-            const declarationRegex = new RegExp(`\\b${hoveredWord}\\b\\s*(?::=|\\(.*\\))`);
-            const hasDeclaration = declarationRegex.test(lineText);
-
-            // Check if the word is part of a method
-            const methodMatch = lineText.match(new RegExp(`\\b${hoveredWord}\\b\\s*\\(([^)]*)\\)`));
-            let parametersMarkdown = '';
-            if (methodMatch && methodMatch[1]) {
-                const parameters = methodMatch[1].split(',').map(param => param.trim()).filter(param => param.length > 0);
-                if (parameters.length > 0) {
-                    parametersMarkdown = `**Parameters:** ${parameters.join(', ')}`;
-                }
-            }
-
-            let docComments = '';
-            let inlineComments = '';
-
-            if (hasDeclaration) {
-                // Find the declaration line
-                const declarationLineMatch = text.split('\n').findIndex((line, idx) => {
-                    const regex = new RegExp(`\\b${hoveredWord}\\b\\s*(?::=|\\(.*\\))`);
-                    return regex.test(line) && idx === position.line;
-                });
-                if (declarationLineMatch !== -1) {
-                    docComments = collectDocComments(doc, declarationLineMatch);
-                    inlineComments = collectInlineComments(doc, declarationLineMatch);
-                }
-            }
-
-            if (hasDeclaration) {
-                // Assemble markdown content with consistent order
-                const markdownLines: string[] = [];
-
-                // Usage Section
-                markdownLines.push(`**Usage:** ${links || 'None'}`);
-
-                // Documentation Comments (fandoc)
-                if (docComments) {
-                    markdownLines.push(docComments);
-                }
-
-                // Parameters (for methods)
-                if (parametersMarkdown) {
-                    markdownLines.push(parametersMarkdown);
-                }
-
-                // Inline Comments
-                if (inlineComments) {
-                    markdownLines.push(`**Comments:**\n${inlineComments}`);
-                }
-
-                return {
-                    contents: {
-                        kind: 'markdown',
-                        value: markdownLines.join('\n\n')
-                    }
-                };
-            } else {
-                // Attempt to collect comments if it's a method
-                const currentLine = position.line;
-                docComments = collectDocComments(doc, currentLine);
-                inlineComments = collectInlineComments(doc, currentLine);
-
-                // Assemble markdown content with consistent order
-                const markdownLines: string[] = [];
-
-                // Usage Section
-                markdownLines.push(`**Usage:** ${links || 'None'}`);
-
-                // Documentation Comments (fandoc)
-                if (docComments) {
-                    markdownLines.push(docComments);
-                }
-
-                // Parameters (for methods)
-                if (parametersMarkdown) {
-                    markdownLines.push(parametersMarkdown);
-                }
-
-                // Inline Comments
-                if (inlineComments) {
-                    markdownLines.push(`**Comments:**\n${inlineComments}`);
-                }
-
-                return {
-                    contents: {
-                        kind: 'markdown',
-                        value: markdownLines.join('\n\n')
-                    }
-                };
-            }
-        }
     }
 
-    // Default "lookup in Fantom" if no other conditions are met
-    logDebug(settings, connection, `No token for ${hoveredWord}`);
-    return {
-        contents: {
-            kind: 'markdown',
-            value: `[Lookup ${hoveredWord} in Fantom](#)`
-        }
-    };
+    // If no token matches, return null or default hover
+    logDebug(settings, connection, `No matching token found for ${hoveredWord}`);
+    return null;
 }
