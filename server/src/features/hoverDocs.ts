@@ -3,6 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { tokenLegend } from '../utils/tokenTypes';
 import { getSettings } from '../utils/settingsManager';
+import { fanDocLookup } from '../utils/fanUtils'; 
 
 /**
  * Logs debug messages if debugging is enabled in settings.
@@ -48,7 +49,7 @@ const getHoveredWord = (text: string, offset: number): { word: string; start: nu
  * Collects documentation comments (fandoc) above a token declaration.
  * @param doc - The text document.
  * @param declarationLine - The line number where the token is declared.
- * @returns The concatenated documentation comments.
+ * @returns The concatenated documentation comments with '**' replaced by '\n\n'.
  */
 const collectDocComments = (doc: TextDocument, declarationLine: number): string => {
     let docComments = '';
@@ -58,12 +59,14 @@ const collectDocComments = (doc: TextDocument, declarationLine: number): string 
             end: { line, character: Number.MAX_SAFE_INTEGER }
         }).trim();
         if (lineText.startsWith('**')) {
-            docComments = `${lineText.replace(/\*\*/g, '\n\n')}\n${docComments}`;
+            // Replace '**' with '\n\n' and accumulate
+            const cleanedLine = lineText.replace(/\*\*/g, '\n\n');
+            docComments = `${cleanedLine}\n${docComments}`;
         } else {
             break;
         }
     }
-    return docComments.trim();
+    return docComments;
 };
 
 /**
@@ -120,7 +123,7 @@ const findWordInstances = (text: string, word: string, doc: TextDocument): numbe
  * @returns A string of markdown links separated by commas.
  */
 const generateMarkdownLinks = (lines: number[], fileUri: string): string => {
-    return lines.map(line => `[${line + 1}](${fileUri}#L${line + 1})`).join(', ');
+    return lines.map(line => `[Line ${line + 1}](${fileUri}#L${line + 1})`).join(', ');
 };
 
 /**
@@ -166,12 +169,23 @@ export async function provideHoverInfo(
     const isPrefixedWithDot = wordStart > 0 && text[wordStart - 1] === '.';
 
     if (isCapitalized || isPrefixedWithDot) {
-        return {
-            contents: {
-                kind: 'markdown',
-                value: `[Lookup ${hoveredWord} in Fantom](#)`
-            }
-        };
+        try {
+            const fantomResult = await fanDocLookup(hoveredWord);
+            return {
+                contents: {
+                    kind: 'markdown',
+                    value: fantomResult
+                }
+            };
+        } catch (error) {
+            logDebug(settings, connection, `Fantom lookup failed: ${error}`);
+            return {
+                contents: {
+                    kind: 'markdown',
+                    value: `**Error:** Unable to lookup "${hoveredWord}" in Fantom.\n\nDetails: ${error}`
+                }
+            };
+        }
     }
 
     // Iterate over tokens to find a match
@@ -191,13 +205,23 @@ export async function provideHoverInfo(
             const isFunctionEntity = scope === 'entity.name.function';
 
             if (isFunctionEntity) {
-                // Return Fantom lookup placeholder
-                return {
-                    contents: {
-                        kind: 'markdown',
-                        value: `[Lookup ${hoveredWord} in Fantom](#)`
-                    }
-                };
+                try {
+                    const fantomResult = await fanDocLookup(hoveredWord);
+                    return {
+                        contents: {
+                            kind: 'markdown',
+                            value: fantomResult
+                        }
+                    };
+                } catch (error) {
+                    logDebug(settings, connection, `Fantom lookup failed: ${error}`);
+                    return {
+                        contents: {
+                            kind: 'markdown',
+                            value: `**Error:** Unable to lookup "${hoveredWord}" in Fantom.\n\nDetails: ${error}`
+                        }
+                    };
+                }
             }
 
             const tokenType = tokenLegend.tokenTypes[tokenTypeIndex];
@@ -232,14 +256,14 @@ export async function provideHoverInfo(
                 markdownLines.push(`**Comments:**\n${inlineComments}`);
             }
 
-            // Declaration Line Text in code block
-            markdownLines.push(`\`${declarationLineText}\``);
+            // Declaration Line Text in code block with syntax highlighting
+            markdownLines.push(`\`\`\`typescript\n${declarationLineText}\n\`\`\``);
 
             // Consolidated Type and Declaration Line with Usage
             if (usageLines.length > 0) {
-                markdownLines.push(`${tokenType} *decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: ${links}*`);
+                markdownLines.push(`${tokenType} decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: [${usageLines.join(', ')}]`);
             } else {
-                markdownLines.push(`${tokenType} *decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: None*`);
+                markdownLines.push(`${tokenType} decl: [Line ${declarationLine + 1}](${fileUri}#L${declarationLine + 1}), used: None`);
             }
 
             return {
@@ -252,6 +276,6 @@ export async function provideHoverInfo(
     }
 
     // If no token matches, return null or default hover
-    logDebug(settings, connection, `No matching token found for ${hoveredWord}`);
+    logDebug(settings, connection, `No matching token found for "${hoveredWord}"`);
     return null;
 }
