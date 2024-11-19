@@ -43,21 +43,7 @@ let settings = initializeSettings(connection);
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     console.log(' -------------------- Fantom server initialized ---------- ');
-    initializeCapabilities(connection, settings);
-    return {
-        capabilities: {
-            textDocumentSync: TextDocumentSyncKind.Incremental,
-            completionProvider: { resolveProvider: true },
-            hoverProvider: true,
-            documentSymbolProvider: true,
-            semanticTokensProvider: {
-                legend: { tokenTypes: [], tokenModifiers: [] },
-                range: false,
-                full: true,
-            },
-            documentFormattingProvider: true
-        }
-    };
+    return initializeCapabilities(connection, settings);
 });
 
 // Handle document open event
@@ -119,9 +105,9 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
 });
 
 // Provide hover information for symbols
-// connection.onHover((params: HoverParams) => {
-//     return provideHoverInfo(params, documents, connection);
-// });
+connection.onHover((params: HoverParams) => {
+    return provideHoverInfo(params, documents, connection);
+});
 
 // // Provide autocomplete suggestions
 // connection.onCompletion((params: CompletionParams) => {

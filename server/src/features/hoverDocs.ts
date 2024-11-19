@@ -2,7 +2,7 @@ import { Hover, HoverParams, Connection, TextDocuments } from 'vscode-languagese
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { runFanFile } from '../utils/fanUtils';
-import { tokenLegend, tokenTypes } from '../utils/tokenTypes';
+import { tokenLegend } from '../utils/tokenTypes';
 import { getSettings } from '../utils/settingsManager';
 
 export async function provideHoverInfo(
@@ -18,7 +18,6 @@ export async function provideHoverInfo(
         }
         return null;
     }
-    // if (settings.debug) {console.log(`Document found: ${doc.uri.split('/').pop()}`);}
 
     const tokens = getDocumentTokens(doc.uri);
     if (!tokens) {
@@ -35,39 +34,104 @@ export async function provideHoverInfo(
         connection.console.log(`Hover requested at position: ${JSON.stringify(position)}, offset: ${offset}`);
     }
 
-    // Find the token at the current position
+    // Retrieve the hovered word manually
+    const text = doc.getText();
+    let start = offset;
+    let end = offset;
+
+    // Expand to the start of the word
+    while (start > 0 && /\w/.test(text.charAt(start - 1))) {
+        start--;
+    }
+
+    // Expand to the end of the word
+    while (end < text.length && /\w/.test(text.charAt(end))) {
+        end++;
+    }
+
+    const hoveredWord = text.slice(start, end);
+
+    if (!hoveredWord) {
+        if (settings.debug) {
+            connection.console.log('No word found at hover position.');
+        }
+        return null;
+    }
+
+    if (settings.debug) {
+        connection.console.log(`Hovered word: ${hoveredWord}`);
+    }
+
+    // Check if the hovered word matches any token
     for (let i = 0; i < tokens.data.length; i += 5) {
-        const start = doc.offsetAt({ line: tokens.data[i], character: tokens.data[i + 1] });
-        const end = start + tokens.data[i + 2];
+        const tokenStart = doc.offsetAt({ line: tokens.data[i], character: tokens.data[i + 1] });
+        const tokenEnd = tokenStart + tokens.data[i + 2];
         const tokenTypeIndex = tokens.data[i + 3];
 
-        if (offset >= start && offset <= end) {
+        if (hoveredWord === text.slice(tokenStart, tokenEnd)) {
             const tokenType = tokenLegend.tokenTypes[tokenTypeIndex];
-            const name = doc.getText().slice(start, end);
+            const declarationLine = tokens.data[i];
 
-            if (settings.debug) {
-                connection.console.log(`Hovering over: ${name}, Type: ${tokenType}`);
+            // Find all instances of the token
+            const instances: number[] = [];
+            for (let j = 0; j < tokens.data.length; j += 5) {
+                const instanceStart = doc.offsetAt({ line: tokens.data[j], character: tokens.data[j + 1] });
+                const instanceEnd = instanceStart + tokens.data[j + 2];
+                if (text.slice(instanceStart, instanceEnd) === hoveredWord) {
+                    instances.push(tokens.data[j]);
+                }
             }
 
-            // Use `runFanFile` to perform the lookup for documentation
-            const lookupResult = await runFanFile("fanLookup.fan", [name, tokenType]);
-
             if (settings.debug) {
-                connection.console.log(`Lookup result: ${lookupResult}`);
+                connection.console.log(`Token match found: ${hoveredWord}, Type: ${tokenType}`);
             }
 
             return {
                 contents: {
                     kind: 'markdown',
-                    value: lookupResult
+                    value: `
+**Token Name**: ${hoveredWord}
+            
+**Type**: ${tokenType}
+            
+**Declaration**: Line ${declarationLine + 1}
+            
+**Instances**: ${instances.map(line => `Line ${line + 1}`).join(', ') || 'None'}
+`
                 }
             };
         }
     }
 
-    if (settings.debug) {
-        connection.console.log('No matching token found at the hover position.');
+    // Check for existing tokens with the same name
+    const matchingToken = tokens.data.some((_, j) => {
+        const instanceStart = doc.offsetAt({ line: tokens.data[j], character: tokens.data[j + 1] });
+        const instanceEnd = instanceStart + tokens.data[j + 2];
+        return text.slice(instanceStart, instanceEnd) === hoveredWord;
+    });
+
+    if (matchingToken) {
+        if (settings.debug) {
+            connection.console.log(`Existing token found for word: ${hoveredWord}`);
+        }
+
+        return {
+            contents: {
+                kind: 'markdown',
+                value: `**Word**: ${hoveredWord}\n\n**Note**: Matches an existing token.`
+            }
+        };
     }
 
-    return null;
+    // Placeholder for "lookup in Fantom"
+    if (settings.debug) {
+        connection.console.log(`No token found for word: ${hoveredWord}. Providing lookup placeholder.`);
+    }
+
+    return {
+        contents: {
+            kind: 'markdown',
+            value: `**Word**: ${hoveredWord}\n\n**Action**: [Lookup in Fantom](#)`
+        }
+    };
 }
