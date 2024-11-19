@@ -9,6 +9,8 @@ import { TextDocuments } from 'vscode-languageserver';
 // Global storage for tokens to allow other features to access pre-built tokens
 const documentTokens = new Map<string, SemanticTokens>();
 
+const debug = false; // Control logging for this file
+
 // Main function to build and store tokens
 export function buildSemanticTokens(doc: TextDocument, connection: Connection): SemanticTokens {
     const settings = getSettings();
@@ -16,8 +18,8 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
     const tokensBuilder = new InlineSemanticTokensBuilder();
     const scopeStack: { type: 'class' | 'method' | 'block'; lineStart: number }[] = [];
 
-    if (settings.debug) {
-        connection.console.log(` [start] Building semantic tokens for  ${doc.uri.split('/').pop()}`);
+    if (settings.debug && debug) {
+        connection.console.log(`[DEBUG] Building tokens for ${doc.uri.split('/').pop()}`);
     }
 
     const isInMethodScope = (line: number): boolean => {
@@ -40,8 +42,8 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
         // Match classes
         if ((match = fantomTokenRegex.classPattern.exec(line)) !== null) {
             const captureIndex = match.index + match[0].indexOf(match[1]);
-            if (settings.debug) {
-                connection.console.log(`  [CLASS]        ${match[1].padEnd(20)} @ [${(lineIndex + 1).toString().padEnd(4)}${captureIndex.toString().padEnd(4)}${match[1].length.toString().padEnd(4)}${tokenLegend.tokenTypes.indexOf(tokenTypes.class).toString().padEnd(4)}0] ${match[0].trimStart()}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[CLASS] ${match[1]} @ [${lineIndex + 1}, ${captureIndex}]`);
             }
             tokensBuilder.push(lineIndex, captureIndex, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.class), 0);
             scopeStack.push({ type: 'class', lineStart: lineIndex });
@@ -51,8 +53,8 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
         // Match constructor
         if ((match = /(?:new\s+)(make)/gm.exec(line)) !== null) {
             const captureIndex = match.index + match[0].indexOf(match[1]);
-            if (settings.debug) {
-                connection.console.log(`  [-make-]       ${match[1].padEnd(20)} @ [${(lineIndex + 1).toString().padEnd(4)}${captureIndex.toString().padEnd(4)}${match[1].length.toString().padEnd(4)}${tokenLegend.tokenTypes.indexOf(tokenTypes.class).toString().padEnd(4)}0] ${match[0].trimStart()}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[CONSTRUCTOR] ${match[1]} @ [${lineIndex + 1}, ${captureIndex}]`);
             }
             tokensBuilder.push(lineIndex, captureIndex, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
         }
@@ -60,8 +62,8 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
         // Match methods
         while ((match = fantomTokenRegex.methodPattern.exec(line)) !== null) {
             const captureIndex = match.index + match[0].indexOf(match[1]);
-            if (settings.debug) {
-                connection.console.log(`  [METHOD]       ${match[1].padEnd(20)} @ [${(lineIndex + 1).toString().padEnd(4)}${captureIndex.toString().padEnd(4)}${match[1].length.toString().padEnd(4)}${tokenLegend.tokenTypes.indexOf(tokenTypes.method).toString().padEnd(4)}0] ${match[0].trimStart()}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[METHOD] ${match[1]} @ [${lineIndex + 1}, ${captureIndex}]`);
             }
             tokensBuilder.push(lineIndex, captureIndex, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.method), 0);
             scopeStack.push({ type: 'method', lineStart: lineIndex });
@@ -71,8 +73,8 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
         while ((match = fantomTokenRegex.fieldPattern.exec(line)) !== null) {
             const captureIndex = match.index + match[0].indexOf(match[1]);
             if (!isInMethodScope(lineIndex)) {
-                if (settings.debug) {
-                    connection.console.log(`  [FIELD]        ${match[1].padEnd(20)} @ [${(lineIndex + 1).toString().padEnd(4)}${captureIndex.toString().padEnd(4)}${match[1].length.toString().padEnd(4)}${tokenLegend.tokenTypes.indexOf(tokenTypes.field).toString().padEnd(4)}0] ${match[0].trimStart()}`);
+                if (settings.debug && debug) {
+                    connection.console.log(`[FIELD] ${match[1]} @ [${lineIndex + 1}, ${captureIndex}]`);
                 }
                 tokensBuilder.push(lineIndex, captureIndex, match[1].length, tokenLegend.tokenTypes.indexOf(tokenTypes.field), 0);
             }
@@ -93,13 +95,15 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
 
     const tokens = tokensBuilder.build();
     if (tokens.data.length === 0) {
-        if (settings.debug) {
+        if (settings.debug && debug) {
             connection.console.log(`No tokens found for document: ${doc.uri.split('/').pop()}, returning empty tokens.`);
         }
         return { data: [] };
     }
 
-    connection.console.log(` [end] Tokens built for ${doc.uri.split('/').pop()}`);
+    if (settings.debug && debug) {
+        connection.console.log(`[DEBUG] Tokens built for ${doc.uri.split('/').pop()}`);
+    }
     // connection.console.log(`[DEBUG] Semantic Tokens: ${JSON.stringify(tokens)}`);
 
     documentTokens.set(doc.uri, tokens);
@@ -135,27 +139,27 @@ export function provideDocumentSymbols(uri: string, connection: Connection, docu
     const doc = documents.get(uri);
 
     if (!doc) {
-        if (settings.debug) {
+        if (settings.debug && debug) {
             connection.console.log(`[ERROR] Document not found: ${uri}`);
         }
         return undefined;
     }
 
-    if (settings.debug) {
-        connection.console.log(`${getCallerFunctionName(2)} requested doc symbols`);
+    if (settings.debug && debug) {
+        connection.console.log(`[DEBUG] Requesting doc symbols for ${uri.split('/').pop()}`);
     }
 
     const symbols = buildOutline(doc, connection);
 
     if (!symbols || symbols.length === 0) {
-        if (settings.debug) {
-            connection.console.log(`[DEBUG] No symbols generated for document: ${uri}`);
+        if (settings.debug && debug) {
+            connection.console.log(`[DEBUG] No symbols generated for ${uri.split('/').pop()}`);
         }
         return undefined;
     }
 
-    if (settings.debug) {
-        connection.console.log(`[DEBUG] Generated symbols for document: ${uri.split('/').pop()}`);
+    if (settings.debug && debug) {
+        connection.console.log(`[DEBUG] Generated symbols for ${uri.split('/').pop()}`);
     }
 
     return symbols;

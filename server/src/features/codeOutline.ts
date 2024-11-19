@@ -14,16 +14,17 @@ import { getSettings } from '../utils/settingsManager';
 export function buildOutline(doc: TextDocument, connection: Connection): DocumentSymbol[] {
     const settings = getSettings();
     const tokens = getDocumentTokens(doc.uri);
+    const debug = false; // Control logging for this file
 
     if (!tokens) {
-        if (settings.debug) {
-            connection.console.log(`[OUTLINE] No tokens found for document: ${doc.uri.split('/').pop()}`);
+        if (settings.debug && debug) {
+            connection.console.log(`[OUTLINE] No tokens: ${doc.uri.split('/').pop()}`);
         }
         return [];
     }
 
-    if (settings.debug) {
-        connection.console.log(`[start] Building outline for ${doc.uri.split('/').pop()}`);
+    if (settings.debug && debug) {
+        connection.console.log(`[OUTLINE] Start: ${doc.uri.split('/').pop()}`);
     }
 
     const symbols: DocumentSymbol[] = [];
@@ -37,8 +38,8 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
 
         const tokenType = tokenLegend.tokenTypes[tokenIndex];
         if (!tokenType) {
-            if (settings.debug) {
-                connection.console.log(`[OUTLINE] Unknown token type for TokenIndex: ${tokenIndex}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[OUTLINE] Unknown token: ${tokenIndex}`);
             }
             continue;
         }
@@ -70,8 +71,8 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
         }).trim();
 
         if (!name) {
-            if (settings.debug) {
-                connection.console.log(`[OUTLINE] Failed to extract name at Line: ${line}, StartChar: ${startChar}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[OUTLINE] No name at Line: ${line}, Char: ${startChar}`);
             }
             continue;
         }
@@ -115,8 +116,8 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
         if (kind === SymbolKind.Class) {
             symbols.push(symbol);
             currentClass = symbol;
-            if (settings.debug) {
-                connection.console.log(` [added] ${name.padEnd(20)}`);
+            if (settings.debug && debug) {
+                connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)}`);
             }
         } else if (kind === SymbolKind.Method || kind === SymbolKind.Field) {
             if (currentClass) {
@@ -124,20 +125,20 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
                     currentClass.children.push(symbol);
                 }
                 currentClass.range.end = symbol.range.end;
-                if (settings.debug) {
-                    connection.console.log(` [added]   | -> ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'} `);
+                if (settings.debug && debug) {
+                    connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'}`);
                 }
             } else {
                 symbols.push(symbol); // Add to top-level if no parent class
-                if (settings.debug) {
-                    connection.console.log(` [added]   | -> ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'} to top-level`);
+                if (settings.debug && debug) {
+                    connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'} to top-level`);
                 }
             }
         }
     }
 
-    if (settings.debug) {
-        connection.console.log(`[end] Completed outline for document: ${doc.uri.split('/').pop()}`);
+    if (settings.debug && debug) {
+        connection.console.log(`[OUTLINE] End: ${doc.uri.split('/').pop()}`);
         // connection.console.log(`${JSON.stringify(symbols)}`);
     }
 

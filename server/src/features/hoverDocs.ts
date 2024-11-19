@@ -5,8 +5,10 @@ import { tokenLegend } from '../utils/tokenTypes';
 import { getSettings } from '../utils/settingsManager';
 import { fanDocLookup } from '../utils/fanUtils'; 
 
+const debug = false; // Control logging for this file
+
 /**
- * Logs debug messages if debugging is enabled in settings.
+ * Logs debug messages if debugging is enabled in settings and this file.
  * @param settings - The current settings.
  * @param connection - The language server connection.
  * @param message - The debug message to log.
@@ -16,8 +18,8 @@ const logDebug = (
     connection: Connection,
     message: string
 ) => {
-    if (settings.debug) {
-        connection.console.log(message);
+    if (settings.debug && debug) {
+        connection.console.log(`[HoverDocs] ${message}`);
     }
 };
 
@@ -148,7 +150,7 @@ export async function provideHoverInfo(
 
     const tokens = getDocumentTokens(doc.uri);
     if (!tokens) {
-        logDebug(settings, connection, 'No tokens found for document.');
+        logDebug(settings, connection, 'No tokens found.');
         return null;
     }
 
@@ -158,7 +160,7 @@ export async function provideHoverInfo(
     const { word: hoveredWord, start: wordStart } = getHoveredWord(text, offset);
 
     if (!hoveredWord) {
-        logDebug(settings, connection, 'No word found at hover position.');
+        logDebug(settings, connection, 'No word at hover position.');
         return null;
     }
 
@@ -276,6 +278,6 @@ export async function provideHoverInfo(
     }
 
     // If no token matches, return null or default hover
-    logDebug(settings, connection, `No matching token found for "${hoveredWord}"`);
+    logDebug(settings, connection, `No matching token for "${hoveredWord}"`);
     return null;
 }

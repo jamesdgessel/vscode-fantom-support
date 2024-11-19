@@ -30,7 +30,24 @@
         "scopeName": "source.fantom",
         "path": "./syntaxes/fantom.tmLanguage.json"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "fantomDocs",
+          "title": "Fantom Docs",
+          "icon": "resources/icons/fantom.svg"
+        }
+      ]
+    },
+    "views": {
+      "fantomDocs": [
+        {
+          "id": "fantomDocsTree",
+          "name": "Fantom Documentation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
