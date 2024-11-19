@@ -97,23 +97,18 @@ export function runShellCmd(command: string): Promise<string> {
     });
 }
 
-/**
- * Executes a Fantom file with specified arguments.
- * @param scriptName The name of the Fantom script file (e.g., "TypeSearcher.fan").
- * @param args Arguments to pass to the Fantom script.
- * @returns A Promise that resolves to the script's output, or rejects with an error.
- */
-export function runFanFile(scriptName: string, args: string[]): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const fantomExecutable = "fan"; // Ensure "fan" is in your system PATH
-        const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
+export function getCallerFunctionName(level: number = 1): string | undefined {
+    const error = new Error();
+    const stack = error.stack?.split("\n");
 
-        execFile(fantomExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
-            if (error) {
-                reject(`Error executing Fantom script: ${stderr || error.message}`);
-                return;
-            }
-            resolve(stdout.trim());
-        });
-    });
+    if (stack && stack.length > level + 1) {
+        // Extract the desired stack line (level + 1, as the first line is "Error")
+        const callerLine = stack[level + 1].trim();
+
+        // Extract the function name using regex
+        const match = callerLine.match(/at (\w+)/);
+        return match ? match[1] : undefined;
+    }
+
+    return undefined;
 }

@@ -1,5 +1,6 @@
 import { InitializeParams, InitializeResult, ServerCapabilities, TextDocumentSyncKind } from 'vscode-languageserver/node';
 import { Connection } from 'vscode-languageserver';
+import { tokenLegend } from '../utils/tokenTypes';
 
 // Initializes and returns server capabilities
 export function initializeCapabilities(connection: Connection, settings: any): InitializeResult {
@@ -10,14 +11,9 @@ export function initializeCapabilities(connection: Connection, settings: any): I
         },
         documentSymbolProvider: true,
         semanticTokensProvider: {
-            legend: {
-                tokenTypes: ['variable','class','method','field'], 
-                tokenModifiers: []
-            },
-            range: false,
-            full: {
-                delta: false
-            }
+            legend: tokenLegend, // Use your defined legend here
+            range: true,        // Enable range-based requests
+            full: true,         // Enable full document requests
         },
         hoverProvider: true,
     };

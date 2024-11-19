@@ -24,7 +24,7 @@ import { buildSemanticTokens,provideDocumentSymbols } from './features/buildToke
 import { provideHoverInfo } from './features/hoverDocs';
 import { provideCompletionItems } from './features/autocomplete';
 import { formatDocument } from './features/formatting';
-import { generateCodeOutline } from './features/codeOutline';
+import { buildOutline } from './features/codeOutline';
 import { lintCode } from './features/codeLinting';
 import { applySyntaxHighlighting } from './features/syntaxHighlighting';
 import { initializeSidebarDocs } from './features/sidebarDocs';
@@ -63,6 +63,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 // Handle document open event
 documents.onDidOpen(event => {
     console.log(' -------------------- Document opened ---------- ');
+    // buildOutline(event.document, connection); // Generate the outline when a document opens
     // buildSemanticTokens(event.document, connection);               // Uses centralized settings
     // applySyntaxHighlighting(event.document, connection);           // Uses centralized settings
     // generateCodeOutline(event.document, connection);               // Uses centralized settings
@@ -73,10 +74,13 @@ documents.onDidOpen(event => {
 // Handle document change event
 documents.onDidChangeContent(change => {
     console.log(' -------------------- Document content changed ---------- ');
+    buildSemanticTokens(change.document, connection);
+    buildOutline(change.document, connection); // Generate the outline when a document opens
     // buildSemanticTokens(change.document, connection);              // Uses centralized settings
     // applySyntaxHighlighting(change.document, connection);          // Uses centralized settings
     // generateCodeOutline(change.document, connection);              // Uses centralized settings
     // lintCode(change.document, connection);                         // Uses centralized settings
+
 });
 
 // Handle document save event
@@ -101,7 +105,7 @@ connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
 // Provide document symbols for syntax highlighting
 connection.onDocumentSymbol((params: DocumentSymbolParams) => {
     console.log(' -------------------- Document Symbol ---------- ');
-    return provideDocumentSymbols(params.textDocument.uri);
+    return provideDocumentSymbols(params.textDocument.uri, connection, documents);
 });
 
 // Build semantic tokens for enhanced syntax highlighting
