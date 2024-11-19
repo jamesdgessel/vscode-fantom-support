@@ -1,6 +1,7 @@
 // server/features/docsDataProvider.ts
 
 import { Connection } from 'vscode-languageserver';
+import { getSettings } from '../utils/settingsManager';
 
 /**
  * Provides documentation data including pods, classes, and slots.
@@ -22,6 +23,11 @@ export class DocsDataProvider {
         name: string;
         classes: { name: string; slots: { name: string; documentation: string }[] }[];
     }[] {
+        const debug = true; // Assuming debug is a constant or a variable defined somewhere
+        const settings = getSettings(); // Retrieve formatting settings
+        if (debug && settings.debug) {
+            console.log('Fetching documentation data...');
+        }
         // Mock data example
         return [
             {
@@ -60,6 +66,11 @@ export class DocsDataProvider {
      * Register handlers for requests from the client.
      */
     public registerHandlers() {
+        const debug = true; // Assuming debug is a constant or a variable defined somewhere
+        const settings = getSettings(); // Retrieve formatting settings
+        if (debug && settings.debug) {
+            console.log('Registering handlers for docs data requests...');
+        }
         this.connection.onRequest('docs/getDocsData', () => {
             return this.getDocsData();
         });

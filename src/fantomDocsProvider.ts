@@ -2,6 +2,8 @@
 
 import * as vscode from 'vscode';
 
+const debug = true; // Define debug constant
+
 /**
  * Enum representing the types of items in the Fantom Docs tree.
  */
@@ -22,7 +24,10 @@ class FantomDocItem extends vscode.TreeItem {
         public readonly documentation: string
     ) {
         super(label, collapsibleState);
-        console.log('%c[FantomDocItem] Created item:', 'color: darkyellow', { label, type, documentation });
+
+        if (debug) {
+            console.debug(`Creating FantomDocItem: ${label}, type: ${type}`);
+        }
 
         switch (type) {
             case FantomDocType.Pod:
@@ -57,7 +62,9 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
      * Refreshes the tree view.
      */
     refresh(): void {
-        console.log('%c[FantomDocsProvider] Refreshing tree view', 'color: darkyellow');
+        if (debug) {
+            console.debug('Refreshing FantomDocsProvider tree view');
+        }
         this._onDidChangeTreeData.fire();
     }
 
@@ -66,19 +73,26 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
      * @param pods The list of pods to display.
      */
     setPods(pods: { name: string; classes: { name: string; slots: { name: string; documentation: string }[] }[] }[]) {
-        console.log('%c[FantomDocsProvider] Setting pods:', 'color: darkyellow', pods);
+        if (debug) {
+            console.debug('Setting pods data', pods);
+        }
         this.pods = pods;
         this.refresh();
     }
 
     getTreeItem(element: FantomDocItem): vscode.TreeItem {
-        console.log('%c[FantomDocsProvider] Getting tree item:', 'color: darkyellow', element);
+        if (debug) {
+            console.debug('Getting tree item', element);
+        }
         return element;
     }
 
     getChildren(element?: FantomDocItem): Thenable<FantomDocItem[]> {
+        if (debug) {
+            console.debug('Getting children for element', element);
+        }
+
         if (!element) {
-            console.log('%c[FantomDocsProvider] Getting root elements (pods)', 'color: darkyellow');
             // Root elements: Pods
             return Promise.resolve(this.pods.map(pod => new FantomDocItem(
                 pod.name,
@@ -90,7 +104,6 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
         switch (element.type) {
             case FantomDocType.Pod:
-                console.log('%c[FantomDocsProvider] Getting children for pod:', 'color: darkyellow', element.label);
                 // Children: Classes
                 const classes = this.pods.find(p => p.name === element.label)?.classes || [];
                 return Promise.resolve(classes.map(cls => new FantomDocItem(
@@ -100,7 +113,6 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                     `Documentation for Class: ${cls.name}`
                 )));
             case FantomDocType.Class:
-                console.log('%c[FantomDocsProvider] Getting children for class:', 'color: darkyellow', element.label);
                 // Children: Slots (methods/fields)
                 const slots = this.pods.flatMap(pod => pod.classes)
                     .find(cls => cls.name === element.label)?.slots || [];
@@ -111,11 +123,9 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                     slot.documentation
                 )));
             case FantomDocType.Slot:
-                console.log('%c[FantomDocsProvider] Slot has no children:', 'color: darkyellow', element.label);
                 // No children
                 return Promise.resolve([]);
             default:
-                console.log('%c[FantomDocsProvider] Unknown element type:', 'color: darkyellow', element.type);
                 return Promise.resolve([]);
         }
     }
