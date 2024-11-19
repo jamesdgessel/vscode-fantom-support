@@ -5,27 +5,15 @@ import * as vscode from 'vscode';
 // Constants
 const LANGUAGE_SERVER_ID = 'fantomLanguageServer';
 
-// Create output channel
-const outputChannel = vscode.window.createOutputChannel('Fantom Extension Support');
-
-// Read configuration
-let fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
-let debug = fantomConfig.get<boolean>('enableLogging', false);
+let debug = false; // Initialize debug flag
 
 // Update debug flag when configuration changes
 vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
-        fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+        const fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
         debug = fantomConfig.get<boolean>('enableLogging', false);
     }
 });
-
-// Helper function for debug logging
-function logDebug(message: string) {
-    if (debug) {
-        outputChannel.appendLine(message);
-    }
-}
 
 /**
  * Enum representing the types of items in the Fantom Docs tree.
@@ -48,25 +36,22 @@ class FantomDocItem extends vscode.TreeItem {
     ) {
         super(label, collapsibleState);
 
-        logDebug(`Creating FantomDocItem: ${label}, type: ${type}`);
-
         this.iconPath = this.getIconPath(type);
         this.tooltip = this.label;
         this.description = type;
 
-        if (type === FantomDocType.Slot) {
-            this.command = {
-                command: 'fantomDocs.showDetails',
-                title: 'Show Slot Details',
-                arguments: [
-                    {
-                        label: this.label,
-                        type: this.type,
-                        documentation: this.documentation,
-                    },
-                ],
-            };
-        }
+        // Assign command to all item types
+        this.command = {
+            command: 'fantomDocs.showDetails',
+            title: 'Show Details',
+            arguments: [
+                {
+                    label: this.label,
+                    type: this.type,
+                    documentation: this.documentation,
+                },
+            ],
+        };
     }
 
     private getIconPath(type: FantomDocType): vscode.ThemeIcon {
@@ -100,11 +85,28 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
         }[];
     }[] = [];
 
+    private outputChannel: vscode.OutputChannel;
+
+    constructor(outputChannel: vscode.OutputChannel) {
+        this.outputChannel = outputChannel;
+
+        // Read initial debug configuration
+        const fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+        debug = fantomConfig.get<boolean>('enableLogging', false);
+    }
+
+    // Helper function for debug logging
+    private logDebug(message: string) {
+        if (debug) {
+            this.outputChannel.appendLine(message);
+        }
+    }
+
     /**
      * Refreshes the tree view.
      */
     refresh(): void {
-        logDebug('Refreshing FantomDocsProvider tree view');
+        this.logDebug('Refreshing FantomDocsProvider tree view');
         this._onDidChangeTreeData.fire();
     }
 
@@ -121,18 +123,18 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
             }[];
         }[]
     ) {
-        logDebug('Setting pods data');
+        this.logDebug('Setting pods data');
         this.pods = pods;
         this.refresh();
     }
 
     getTreeItem(element: FantomDocItem): vscode.TreeItem {
-        logDebug(`Getting tree item for: ${element.label}`);
+        this.logDebug(`Getting tree item for: ${element.label}`);
         return element;
     }
 
     getChildren(element?: FantomDocItem): Thenable<FantomDocItem[]> {
-        logDebug('Getting children for element: ' + (element ? element.label : 'root'));
+        this.logDebug('Getting children for element: ' + (element ? element.label : 'root'));
 
         if (!element) {
             // Root elements: Pods
@@ -192,8 +194,18 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
 export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
+    private outputChannel: vscode.OutputChannel;
 
-    constructor(private readonly context: vscode.ExtensionContext) {}
+    constructor(private readonly context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel) {
+        this.outputChannel = outputChannel;
+    }
+
+    // Helper function for debug logging
+    private logDebug(message: string) {
+        if (debug) {
+            this.outputChannel.appendLine(message);
+        }
+    }
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -202,7 +214,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
     ) {
         this._view = webviewView;
 
-        logDebug('Resolving webview view');
+        this.logDebug('Resolving webview view');
 
         // Set up the webview
         webviewView.webview.options = {
@@ -214,25 +226,20 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
     }
 
     /**
-     * Update the webview content with the selected slot's details.
+     * Update the webview content with the selected item's details.
      */
     showSlotDetails(label: string, documentation: string) {
-        logDebug(`Showing slot details: Label: ${label}`);
+        this.logDebug(`Showing details for: ${label}`);
 
         if (this._view) {
-            logDebug('Bringing the webview into focus');
             this._view.show?.(true); // Bring the view into focus
-
-            logDebug('Updating webview HTML content');
             this._view.webview.html = this.getHtmlContent(
                 `<h1>${label}</h1>
                 <p><strong>Documentation:</strong></p>
                 <p>${documentation}</p>`
             );
-
-            logDebug('Webview HTML content updated');
         } else {
-            logDebug('Webview is not available');
+            this.logDebug('Webview is not available');
         }
     }
 

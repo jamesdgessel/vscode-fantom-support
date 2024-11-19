@@ -9,7 +9,9 @@ import {
 import { FantomDocsProvider, FantomDocsDetailsProvider } from './fantomDocsProvider';
 
 let client: LanguageClient;
-const outputChannel = vscode.window.createOutputChannel('Fantom Extension Support');
+
+// Create output channel
+const outputChannel = vscode.window.createOutputChannel('Fantom Language Client');
 
 // Define constants
 const LANGUAGE_SERVER_ID = 'fantomLanguageServer';
@@ -88,9 +90,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     logDebug('Language client initialized.');
 
-    // Register the Fantom Docs Tree View and details provider
-    const fantomDocsProvider = new FantomDocsProvider();
-    const detailsProvider = new FantomDocsDetailsProvider(context);
+    // Pass the outputChannel to the providers
+    const fantomDocsProvider = new FantomDocsProvider(outputChannel);
+    const detailsProvider = new FantomDocsDetailsProvider(context, outputChannel);
 
     // Collect disposables
     context.subscriptions.push(
@@ -99,10 +101,8 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.window.registerWebviewViewProvider(DOCS_DETAILS_VIEW_ID, detailsProvider),
         vscode.commands.registerCommand('fantomDocs.showDetails', (item) => {
-            if (item.type === 'Slot') {
-                logDebug(`Showing details for slot: ${item.label}`);
-                detailsProvider.showSlotDetails(item.label, item.documentation);
-            }
+            logDebug(`Showing details for ${item.type}: ${item.label}`);
+            detailsProvider.showSlotDetails(item.label, item.documentation);
         }),
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
