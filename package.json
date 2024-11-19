@@ -45,9 +45,20 @@
         {
           "id": "fantomDocsTree",
           "name": "Fantom Documentation"
+        },
+        {
+          "id": "fantomDocsDetails",
+          "name": "Slot Details",
+          "type": "webview" 
         }
       ]
-    }
+    },
+    "commands": [
+      {
+        "command": "fantomDocs.showDetails",
+        "title": "Show Slot Details"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

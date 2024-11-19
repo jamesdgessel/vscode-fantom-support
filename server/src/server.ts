@@ -39,6 +39,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Initialize settings
 let settings = initializeSettings(connection);
+let debug = settings.debug;
 
 // Initialize DocsDataProvider
 const docsDataProvider = new DocsDataProvider(connection);
@@ -77,7 +78,11 @@ documents.onDidClose(event => {
 connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
     console.log(' -------------------- Config changed  ---------- ');
     settings = updateSettings(change, connection);
+    debug = settings.debug;
     handleConfigChange(change, connection);
+    if (debug) {
+        console.log('Server configuration changed.');
+    }
 });
 
 // Provide document symbols for syntax highlighting

@@ -23,9 +23,8 @@ export class DocsDataProvider {
         name: string;
         classes: { name: string; slots: { name: string; documentation: string }[] }[];
     }[] {
-        const debug = true; // Assuming debug is a constant or a variable defined somewhere
         const settings = getSettings(); // Retrieve formatting settings
-        if (debug && settings.debug) {
+        if (settings.debug) {
             console.log('Fetching documentation data...');
         }
         // Mock data example
@@ -66,9 +65,8 @@ export class DocsDataProvider {
      * Register handlers for requests from the client.
      */
     public registerHandlers() {
-        const debug = true; // Assuming debug is a constant or a variable defined somewhere
         const settings = getSettings(); // Retrieve formatting settings
-        if (debug && settings.debug) {
+        if (settings.debug) {
             console.log('Registering handlers for docs data requests...');
         }
         this.connection.onRequest('docs/getDocsData', () => {

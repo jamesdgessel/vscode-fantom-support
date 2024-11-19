@@ -1,12 +1,41 @@
-// src/extension.ts
-
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
-import { FantomDocsProvider } from './fantomDocsProvider'; // Added import
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    TransportKind,
+} from 'vscode-languageclient/node';
+import { FantomDocsProvider, FantomDocsDetailsProvider } from './fantomDocsProvider';
 
 let client: LanguageClient;
 const outputChannel = vscode.window.createOutputChannel('Fantom Extension Support');
+
+// Define constants
+const LANGUAGE_SERVER_ID = 'fantomLanguageServer';
+const LANGUAGE_SERVER_NAME = 'Fantom Language Server';
+const DOCS_TREE_VIEW_ID = 'fantomDocsTree';
+const DOCS_DETAILS_VIEW_ID = 'fantomDocsDetails';
+
+// Read configuration
+let fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+let debug = fantomConfig.get<boolean>('enableLogging', false);
+
+// Update debug flag when configuration changes
+vscode.workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
+        fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+        debug = fantomConfig.get<boolean>('enableLogging', false);
+        // ...existing code...
+    }
+});
+
+// Helper function for debug logging
+function logDebug(message: string) {
+    if (debug) {
+        outputChannel.appendLine(message);
+    }
+}
 
 // Define type for DocsData
 interface DocsData {
@@ -21,97 +50,109 @@ interface DocsData {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  outputChannel.appendLine('Activating Fantom support extension...');
-  
-  // Path to the server module
-  const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
-  const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+    logDebug('Activating Fantom support extension...');
 
-  // Server options to run or debug the language server
-  const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
-    debug: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-      options: debugOptions
-    }
-  };
+    // Path to the server module
+    const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
+    const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
-  // Define client options with semantic tokens legend and document selector
-  const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: 'file', language: 'fantom' }],
-    synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc')
-    },
-    initializationOptions: {
-      enableLogging: vscode.workspace.getConfiguration('fantomLanguageServer').get('enableLogging', false),
-      highlightVariableDeclarations: vscode.workspace.getConfiguration('fantomLanguageServer').get('highlightVariableDeclarations', true),
-      highlightVariableUsage: vscode.workspace.getConfiguration('fantomLanguageServer').get('highlightVariableUsage', true),
-    },
-  };
+    // Server options to run or debug the language server
+    const serverOptions: ServerOptions = {
+        run: { module: serverModule, transport: TransportKind.ipc },
+        debug: {
+            module: serverModule,
+            transport: TransportKind.ipc,
+            options: debugOptions,
+        },
+    };
 
-  // Initialize the language client
-  client = new LanguageClient(
-    'fantomLanguageServer',
-    'Fantom Language Server',
-    serverOptions,
-    clientOptions
-  );
+    logDebug('Server options set.');
 
-  outputChannel.appendLine('Language client initialized.');
+    // Define client options
+    const clientOptions: LanguageClientOptions = {
+        documentSelector: [{ scheme: 'file', language: 'fantom' }],
+        synchronize: {
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc'),
+        },
+        initializationOptions: {
+            enableLogging: debug,
+            highlightVariableDeclarations: fantomConfig.get<boolean>('highlightVariableDeclarations', true),
+            highlightVariableUsage: fantomConfig.get<boolean>('highlightVariableUsage', true),
+        },
+    };
 
-  // Register the Fantom Docs Tree View
-  const fantomDocsProvider = new FantomDocsProvider();
-  const fantomDocsTree = vscode.window.createTreeView('fantomDocsTree', { treeDataProvider: fantomDocsProvider });
-  context.subscriptions.push(fantomDocsTree);
+    logDebug('Client options set.');
 
-  // Register for diagnostics and documentation data when client is ready
-  client.onDidChangeState((event) => {
-    if (event.newState === 2) { // Ready
-      outputChannel.appendLine('Client is ready.');
+    // Initialize the language client
+    client = new LanguageClient(LANGUAGE_SERVER_ID, LANGUAGE_SERVER_NAME, serverOptions, clientOptions);
 
-      // Send diagnostics request
-      client.sendRequest('workspace/diagnostics', { documentSelector: [{ language: 'fantom' }] });
+    logDebug('Language client initialized.');
 
-      // Fetch documentation data from the server and populate the tree view
-      client.sendRequest<DocsData[]>('docs/getDocsData').then((data) => {
-        if (data) {
-          outputChannel.appendLine('Received documentation data.');
-          fantomDocsProvider.setPods(data);
+    // Register the Fantom Docs Tree View and details provider
+    const fantomDocsProvider = new FantomDocsProvider();
+    const detailsProvider = new FantomDocsDetailsProvider(context);
+
+    // Collect disposables
+    context.subscriptions.push(
+        vscode.window.createTreeView(DOCS_TREE_VIEW_ID, {
+            treeDataProvider: fantomDocsProvider,
+        }),
+        vscode.window.registerWebviewViewProvider(DOCS_DETAILS_VIEW_ID, detailsProvider),
+        vscode.commands.registerCommand('fantomDocs.showDetails', (item) => {
+            if (item.type === 'Slot') {
+                logDebug(`Showing details for slot: ${item.label}`);
+                detailsProvider.showSlotDetails(item.label, item.documentation);
+            }
+        }),
+        vscode.workspace.onDidChangeConfiguration((event) => {
+            if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
+                logDebug('Configuration changed.');
+                const newConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+                client.sendNotification('workspace/didChangeConfiguration', { settings: newConfig });
+            }
+        })
+    );
+
+    logDebug('Fantom Docs Tree View and WebviewView provider registered.');
+
+    // Start the client. This will also launch the server
+    client.start();
+    logDebug('Client started.');
+
+    // Handle client readiness
+    client.onDidChangeState((event) => {
+        if (event.newState === 2) { // 2 corresponds to "Running" state
+            logDebug('Client is ready.');
+
+            // Send diagnostics request
+            client.sendRequest('workspace/diagnostics', {
+                documentSelector: [{ language: 'fantom' }],
+            });
+            logDebug('Diagnostics request sent.');
+
+            // Fetch documentation data from the server and populate the tree view
+            client.sendRequest<DocsData[]>('docs/getDocsData').then((data) => {
+                if (data) {
+                    logDebug('Received documentation data.');
+                    fantomDocsProvider.setPods(data);
+                }
+            });
+
+            // Listen for updates to documentation data
+            client.onNotification('docs/updateDocsData', (updatedData: DocsData[]) => {
+                if (updatedData) {
+                    logDebug('Received updated documentation data.');
+                    fantomDocsProvider.setPods(updatedData);
+                }
+            });
         }
-      });
-
-      // Listen for updates to documentation data
-      client.onNotification('docs/updateDocsData', (updatedData: DocsData[]) => {
-        if (updatedData) {
-          outputChannel.appendLine('Received updated documentation data.');
-          fantomDocsProvider.setPods(updatedData);
-        }
-      });
-    }
-  });
-
-  // Start the client. This will also launch the server
-  client.start();
-  outputChannel.appendLine('Client started.');
-
-  // Listen for changes in configuration
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(event => {
-      if (event.affectsConfiguration('fantomLanguageServer')) {
-        outputChannel.appendLine('Configuration changed.');
-        client.sendNotification('workspace/didChangeConfiguration', {
-          settings: vscode.workspace.getConfiguration('fantomLanguageServer')
-        });
-      }
-    })
-  );
+    });
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  if (!client) {
-    return undefined;
-  }
-  outputChannel.appendLine('Deactivating Fantom support extension...');
-  return client.stop();
+    if (!client) {
+        return undefined;
+    }
+    logDebug('Deactivating Fantom support extension...');
+    return client.stop();
 }
