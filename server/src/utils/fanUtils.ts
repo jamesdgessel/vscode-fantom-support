@@ -107,3 +107,55 @@ export function fanDocLookup(input: string): Promise<string> {
         }
     });
 }
+
+export type FantomDocs = {
+    name: string;
+    classes: { name: string; slots: { name: string; documentation: string }[] }[];
+}[];
+
+export async function buildFantomDocs(): Promise<FantomDocs> {
+    // This is a mock implementation - replace with actual Fantom docs parsing later
+    return [
+        {
+            name: "sys",
+            classes: [
+                {
+                    name: "Str",
+                    slots: [
+                        {
+                            name: "size",
+                            documentation: "Returns the number of characters in this string."
+                        },
+                        {
+                            name: "trim",
+                            documentation: "Return a new string with leading and trailing whitespace removed"
+                        }
+                    ]
+                },
+                {
+                    name: "Int",
+                    slots: [
+                        {
+                            name: "abs",
+                            documentation: "Return absolute value of this integer"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "util",
+            classes: [
+                {
+                    name: "Random",
+                    slots: [
+                        {
+                            name: "next",
+                            documentation: "Returns the next random number"
+                        }
+                    ]
+                }
+            ]
+        }
+    ];
+}

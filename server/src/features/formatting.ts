@@ -3,48 +3,64 @@ import { DocumentFormattingParams } from 'vscode-languageserver';
 import { getSettings } from '../utils/settingsManager';
 
 export function formatDocument(doc: TextDocument, params: DocumentFormattingParams): TextEdit[] {
-    const settings = getSettings(); // Retrieve formatting settings
-    const text = doc.getText();
-    const edits: TextEdit[] = [];
+  const settings = getSettings(); // Retrieve formatting settings
+  const text = doc.getText();
+  const edits: TextEdit[] = [];
 
-    // Convert code to a list of lines for line-by-line formatting
-    const lines = text.split(/\r?\n/);
-    const formattedLines = lines.map(line => formatLine(line, settings));
+  // Split the document text into lines
+  const lines = text.split(/\r?\n/);
+  const formattedLines = formatLines(lines);
 
-    // If the formatted text differs, return the edit to replace the entire document content
-    const formattedText = formattedLines.join('\n');
-    if (formattedText !== text) {
-        edits.push({
-            range: {
-                start: doc.positionAt(0),
-                end: doc.positionAt(text.length),
-            },
-            newText: formattedText,
-        });
-    }
+  // Join the formatted lines into the final text
+  const formattedText = formattedLines.join('\n');
 
-    return edits;
+  // If the formatted text differs, return the edit to replace the entire document content
+  if (formattedText !== text) {
+    edits.push({
+      range: {
+        start: doc.positionAt(0),
+        end: doc.positionAt(text.length),
+      },
+      newText: formattedText,
+    });
+  }
+
+  return edits;
 }
 
-// Helper function to format individual lines based on Fantom conventions and settings
-function formatLine(line: string, settings: any): string {
-    // Trim extra whitespace if enabled in settings
-    let formattedLine = settings.trimWhitespace ? line.trim() : line;
+// Formats all lines of the document according to Fantom guidelines
+function formatLines(lines: string[]): string[] {
+  const formattedLines: string[] = [];
+  const indentStack: number[] = [0]; // Tracks current indentation levels
 
-    // Add indentation after opening braces if enabled
-    if (settings.indentAfterBrace && formattedLine.endsWith("{")) {
-        formattedLine += "\n    "; // Adds a new line and indentation after opening brace
+  for (let line of lines) {
+    // Trim trailing whitespace
+    line = line.trimEnd();
+
+    if (line === '') {
+      formattedLines.push(line); // Preserve empty lines
+      continue;
     }
 
-    // Ensure closing braces are on a new line if enabled
-    if (settings.newLineBeforeClosingBrace && formattedLine === "}") {
-        formattedLine = "\n" + formattedLine;
+    const currentIndent = indentStack[indentStack.length - 1];
+
+    // Check for closing brace
+    if (line.startsWith('}')) {
+      indentStack.pop();
+      formattedLines.push(' '.repeat(indentStack[indentStack.length - 1]) + '}');
+      continue;
     }
 
-    // Additional formatting rules based on settings
-    if (settings.insertSemicolons && !formattedLine.endsWith(";") && formattedLine !== "}") {
-        formattedLine += ";";
+    // Handle opening brace
+    if (line.endsWith('{')) {
+      formattedLines.push(' '.repeat(currentIndent) + line.trim());
+      indentStack.push(currentIndent + 2);
+      continue;
     }
 
-    return formattedLine;
+    // Regular line with current indentation
+    formattedLines.push(' '.repeat(currentIndent) + line);
+  }
+
+  return formattedLines;
 }

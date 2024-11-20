@@ -2,63 +2,41 @@
 
 import { Connection } from 'vscode-languageserver';
 import { getSettings } from '../utils/settingsManager';
+import { buildFantomDocs } from '../utils/fanUtils';   
 
-/**
- * Provides documentation data including pods, classes, and slots.
- * This serves as the backend logic for the docs sidebar tree view.
- */
+type FantomDocs = {
+    name: string;
+    classes: { name: string; slots: { name: string; documentation: string }[] }[];
+}[];
+
 export class DocsDataProvider {
     private connection: Connection;
+    private docsCache: FantomDocs | null = null;
 
     constructor(connection: Connection) {
         this.connection = connection;
+        this.initialize();
     }
 
-    /**
-     * Fetch the list of pods, classes, and slots with their documentation.
-     * Replace this implementation with actual data-fetching logic.
-     * @returns A structured list of documentation items.
-     */
-    public getDocsData(): {
-        name: string;
-        classes: { name: string; slots: { name: string; documentation: string }[] }[];
-    }[] {
-        const settings = getSettings(); // Retrieve formatting settings
+    private async initialize() {
+        const settings = getSettings();
         if (settings.debug) {
-            console.log('Fetching documentation data...');
+            console.log('Initializing Fantom documentation cache...');
         }
-        // Mock data example
-        return [
-            {
-                name: 'Pod1',
-                classes: [
-                    {
-                        name: 'Class1',
-                        slots: [
-                            { name: 'method1', documentation: 'Documentation for method1' },
-                            { name: 'field1', documentation: 'Documentation for field1' },
-                        ]
-                    },
-                    {
-                        name: 'Class2',
-                        slots: [
-                            { name: 'method2', documentation: 'Documentation for method2' },
-                        ]
-                    }
-                ]
-            },
-            {
-                name: 'Pod2',
-                classes: [
-                    {
-                        name: 'Class3',
-                        slots: [
-                            { name: 'method3', documentation: 'Documentation for method3' },
-                        ]
-                    }
-                ]
-            }
-        ];
+        
+        try {
+            this.docsCache = await buildFantomDocs(); // You'll implement this function
+        } catch (error) {
+            console.error('Failed to initialize Fantom docs:', error);
+            this.docsCache = [];
+        }
+    }
+
+    public getDocsData(): FantomDocs {
+        if (!this.docsCache) {
+            return []; // Return empty array if cache isn't ready
+        }
+        return this.docsCache;
     }
 
     /**
