@@ -40,7 +40,7 @@ class FantomDocItem extends vscode.TreeItem {
         this.tooltip = this.label;
         this.description = type;
 
-        // Assign command to all item types
+        // Fix the command structure
         this.command = {
             command: 'fantomDocs.showDetails',
             title: 'Show Details',
@@ -48,7 +48,7 @@ class FantomDocItem extends vscode.TreeItem {
                 {
                     label: this.label,
                     type: this.type,
-                    documentation: this.documentation,
+                    documentation: this.documentation || 'No documentation available', // Ensure documentation is never undefined
                 },
             ],
         };

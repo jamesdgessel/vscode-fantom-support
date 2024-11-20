@@ -34,7 +34,7 @@ vscode.workspace.onDidChangeConfiguration((event) => {
 
 // Helper function for debug logging
 function logDebug(message: string) {
-    if (debug) {
+    if (true) {
         outputChannel.appendLine(message);
     }
 }
@@ -101,8 +101,16 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.window.registerWebviewViewProvider(DOCS_DETAILS_VIEW_ID, detailsProvider),
         vscode.commands.registerCommand('fantomDocs.showDetails', (item) => {
+            if (!item) {
+                logDebug('No item selected');
+                return;
+            }
+            
             logDebug(`Showing details for ${item.type}: ${item.label}`);
-            detailsProvider.showSlotDetails(item.label, item.documentation);
+            detailsProvider.showSlotDetails(
+                item.label || 'Unnamed Item', 
+                item.documentation || 'No documentation available'
+            );
         }),
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
