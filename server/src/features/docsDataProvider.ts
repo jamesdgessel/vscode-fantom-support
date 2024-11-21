@@ -2,7 +2,7 @@
 
 import { Connection } from 'vscode-languageserver';
 import { getSettings } from '../utils/settingsManager';
-import { buildFantomDocs } from '../utils/fanUtils';   
+import { buildFantomDocs, initFantomDocs } from '../utils/fanUtils';   
 
 type FantomDocs = {
     name: string;
@@ -25,7 +25,7 @@ export class DocsDataProvider {
         }
         
         try {
-            this.docsCache = await buildFantomDocs(); // You'll implement this function
+            this.docsCache = await initFantomDocs(); // You'll implement this function
         } catch (error) {
             console.error('Failed to initialize Fantom docs:', error);
             this.docsCache = [];

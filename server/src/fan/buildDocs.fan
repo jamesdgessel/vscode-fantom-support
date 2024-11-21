@@ -6,6 +6,7 @@ using concurrent::Future
 
 class DocBuilder 
 {
+    static Bool debug() {return false}
 
     static [sys::Str:sys::Obj?]? methodBuilder(Method method) {
         if (method.name.contains("\$")) return null // skip inner classes
@@ -24,7 +25,7 @@ class DocBuilder
             ]
             return methodData
         } catch (Err e) {
-            echo("Error in methodBuilder for method ${method.name}: ${e.toStr}")
+            echo("Error in methodBuilder for method ${method.name}: ${e.toStr}") // Leave unchanged
             return null
         }
     }
@@ -60,7 +61,7 @@ class DocBuilder
     }
 
     static [sys::Str:sys::Obj?]? podBuilder(Pod pod) {
-        echo("  -- generating ${pod.toStr} docs -- ")
+        if (debug()) echo("  -- generating ${pod.toStr} docs -- ")
         classes := pod.types.map |type| {classBuilder(type)}
         podData := [
             "name": pod.toStr,
@@ -81,7 +82,7 @@ class DocBuilder
     }
 
     static Void buildDocs(Str outPath) {
-        echo("[start] building docs")
+        if (debug()) echo("[start] building docs")
         try {
             docs := docBuilder() 
 
@@ -93,22 +94,23 @@ class DocBuilder
             //close stream and write to file
             json.writeJson(docs as Obj?[])
             json.close
-            echo("[done] docs written to ${file.osPath}")
+            if (debug()) echo("[done] docs written to ${file.osPath}")
         } catch (Err e) {
-            echo("[error] Failed to build docs: ${e.toStr}")
+            echo("[error] Failed to build docs: ${e.toStr}") // Leave unchanged
         }
     }
 
     static Future buildDocsAsync(Str outPath) {
+        if (debug()) echo("starting async build")
         pool := ActorPool()
         a := Actor(pool) |Obj msg| { 
             try {
                 buildDocs(outPath)
             } catch (Err e) {
-                echo("Async buildDocs error: ${e.toStr}")
+                echo("Async buildDocs error: ${e.toStr}") // Leave unchanged
             }
         }
-        echo("starting async build")
+        if (debug()) echo("starting async build")
         return a.send("start")
     }
 
@@ -121,7 +123,6 @@ class DocBuilder
             if (v == null ) { return null }
             else if (iterateKeys.contains(k)) 
             {
-                echo ("iterating ${k}")
                 return (v as List).mapNotNull |p| 
                 {
                     if (p == null) return null
@@ -137,7 +138,7 @@ class DocBuilder
 
     static Void buildNavTree(Str outPath)
     {
-        echo("building nav tree")
+        if (debug()) echo("building nav tree")
         
         //parse json
         file := File(outPath.toUri)
@@ -156,17 +157,16 @@ class DocBuilder
         jsonOut.prettyPrint = true
         jsonOut.writeJson(navTree as Obj?[])
         jsonOut.close
-        // echo(util::JsonOutStream.prettyPrintToStr(navTree))
 
     }
 
-    static Str main(Str[] args) 
+    static Void main(Str[] args) 
     { 
 
-        Str outPath := "docs/fantom-docs.json"
+        Str outPath := Env.cur.homeDir.toStr + "vscode/fantom-docs.json"
         if (args.size > 0) 
         {
-            echo("no args given, proceeding with default output path")
+            if (debug()) echo("no args given, proceeding with default output path")
             outPath = args[0]
         }
 
@@ -174,7 +174,9 @@ class DocBuilder
 
         buildNavTree(outPath) 
 
-        echo("done")
-        return outPath
+        if (debug()) echo("done")
+        
+        Str outStr := "{docs:"+outPath+", nav:"+outPath.replace(".json", "-nav.json")+"}"
+        echo(outStr)
     }
 }
