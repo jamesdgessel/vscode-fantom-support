@@ -1,71 +1,52 @@
-# fantom-support README
+# Fantom Support Extension for Visual Studio Code
 
-This is the README for your extension "fantom-support". After writing up a brief description, we recommend including the following sections.
+This extension enhances the development experience for the Fantom programming language in Visual Studio Code, offering essential tools for productivity and better code management.
+
+This offers additions to syntax highlighting, but also implements a language server enabling
+major additional features. 
+
+**Note this is a brand new beta release! Please report any errors on the github repo.** 
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by Matthew and AMckay, adding highlights for classes, methods, fields, types, and variables (beta) using semantic tokens. 
+- **Outline View**: Easily navigate your Fantom files with a structured outline for classes, methods, and fields.
+- **Fantom Docs**: Navigable fantom docs, right within vscode. 
+- **Hover Documentation**: Hover over classes, types, methods, fields to view information. 
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Features In Development
+- **Auto-Completion**: Intelligent code suggestions tailored to Fantom, improving coding speed and accuracy.
+- **Code Snippets**: Predefined snippets for common Fantom constructs, reducing repetitive typing.
+- **Dynamic Updates**: Real-time syntax highlighting for variable declarations and usage instances.
+- **Customizable Settings**: Enable or disable syntax highlighting elements directly from the settings menu.
+- **Code Formatting**: So you're always up to Brian's standards ;) 
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code (latest version recommended).
+- Ensure you have Fantom installed and configured on your system.
+- Ensure you have FAN_HOME in your path, otherwise docs will not work. 
+- Compatible with Windows systems where Fantom scripts are run.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+Not documented yet :) 
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- **Outline View Limitations**: Currently outlines only classes, fields, and methods. Expanding this feature is in tbd.
+- **Syntax Highlighting**: I've only tested on some small codebases, I know there will be some issues that pop up. I prefer it working 80% of the time than 0%, so I went for it even though it was quite complicated. 
+
+If you encounter any issues, please report them on the GitHub repository.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
 ### 1.0.0
+- Initial release.
+- Features include syntax highlighting, outline view, and basic auto-completion.
 
-Initial release of ...
+## Contributing
 
-### 1.0.1
+We welcome contributions! If you’d like to add features, fix bugs, or improve the extension, please open a pull request or file an issue.
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoy coding with Fantom!**

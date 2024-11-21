@@ -1,10 +1,15 @@
 {
   "name": "fantom-support",
+  "publisher": "SkyforgeAnalytics",
   "displayName": "fantom-support",
   "description": "Support for Fantom language",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamesdgessel/vscode-fantom-support"
+  },
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Programming Languages"
@@ -66,7 +71,8 @@
     "watch": "tsc -b -w",
     "postinstall": "cd server && npm install",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "prepare": "npm run compile"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
