@@ -1,9 +1,9 @@
-import { buildFantomDocs, initFantomDocs } from '../utils/fanUtils';
+import { getFantomDocs, getFantomNav, initFantomDocs } from '../utils/fanUtils';
 
 async function testBuildFantomDocs() {
     try {
         console.log(" ----------- test start ------------- get fantom docs");
-        const docs = await buildFantomDocs();
+        const docs = await getFantomDocs();
         // console.log('Fantom Docs:', JSON.stringify(docs, null, 2));
         console.log("----------- test end ------------- test success ");
     } catch (error) {

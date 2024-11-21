@@ -15,6 +15,8 @@ class DocBuilder
             methodData := 
             [
                 "name": method.name,
+                "qname": method.qname,
+                "type": "method",
                 "params": method.params.map |param| 
                 {[
                     "name": param.name,
@@ -35,7 +37,8 @@ class DocBuilder
         fieldData := 
         [
             "name": field.name,
-            "type": field.toStr,
+            "qname": field.qname,
+            "type": "field",
             "doc": field.doc ?: ""
         ]
         return fieldData
@@ -50,9 +53,10 @@ class DocBuilder
         classData := 
         [
             "name": type.name,
+            "qname": type.qname,
+            "type": "class",
             "doc": type.doc ?: "",
             "facets" : (type.facets.map |fac| {fac.toStr}),
-            "base" : type.base.toStr,
             "public": type.isPublic,
             "fields": fields,
             "methods": methods
@@ -66,6 +70,7 @@ class DocBuilder
         podData := [
             "name": pod.toStr,
             "type": "pod",
+            "qname": "Pod::$pod.toStr",
             "classes": classes
         ]
         return podData
@@ -74,8 +79,11 @@ class DocBuilder
     static Obj?[] docBuilder() {
 
         //build docs
-        pods := Pod.list.getRange(1..2) 
-        docs := pods.map |Pod pod -> [sys::Str:sys::Obj?]?| { return podBuilder(pod) }
+        pods := Pod.list
+        docs := pods.map |Pod pod -> [sys::Str:sys::Obj?]?| { 
+            echo("  -- generating ${pod.toStr} docs -- ")
+            return podBuilder(pod) 
+            }
         
         return docs
 
@@ -116,7 +124,7 @@ class DocBuilder
 
     static [Str:Obj?]? reduceToNavTree([Str:Obj?]? json) 
     {
-        Str[] keepKeys := ["name", "type"]
+        Str[] keepKeys := ["name", "type", "qname", "public","returns"]
         Str[] iterateKeys := ["classes", "methods", "fields"]
         tree := json.mapNotNull |v,k|  
         { 

@@ -36,7 +36,7 @@
         {
           "id": "fantomDocs",
           "title": "Fantom Docs",
-          "icon": "resources/icons/fantom.svg"
+          "icon": "./resources/icons/fantom-icon.svg"
         }
       ]
     },
@@ -49,7 +49,7 @@
         {
           "id": "fantomDocsDetails",
           "name": "Slot Details",
-          "type": "webview" 
+          "type": "webview"
         }
       ]
     },

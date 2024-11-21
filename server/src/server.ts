@@ -27,10 +27,9 @@ import { formatDocument } from './features/formatting';
 import { buildOutline } from './features/codeOutline';
 import { lintCode } from './features/codeLinting';
 import { applySyntaxHighlighting } from './features/syntaxHighlighting';
-import { DocsDataProvider } from './features/docsDataProvider'; // Added import
 
 // Import utility functions
-import { executeFanCmd } from './utils/fanUtils';
+import { executeFanCmd, initFantomDocs } from './utils/fanUtils';
 import { initializeSettings, updateSettings, getSettings } from './utils/settingsManager';
 
 // Initialize server connection and documents manager
@@ -41,13 +40,10 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let settings = initializeSettings(connection);
 let debug = settings.debug;
 
-// Initialize DocsDataProvider
-const docsDataProvider = new DocsDataProvider(connection);
-docsDataProvider.registerHandlers();
-
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     console.log(' -------------------- Fantom server initialized ---------- ');
+    initFantomDocs();
     return initializeCapabilities(connection, settings);
 });
 

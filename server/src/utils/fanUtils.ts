@@ -184,8 +184,9 @@ export type FantomDocs = {
 export async function initFantomDocs(): Promise<string> {
     console.log("INITIALIZING FANTOM DOCS");
     try {
-        await executeFanScript(path.resolve(__dirname, "../../src/fan/buildDocs.fan"), []);
+        const out = await executeFanScript(path.resolve(__dirname, "../../src/fan/buildDocs.fan"), []);
         console.log("BUILT FANTOM DOCS");
+        console.log(out);
     } catch (error) {
         console.error("Error initializing Fantom docs:", error);
         throw error;
@@ -215,9 +216,8 @@ function getFanNavPath(): string {
     return path.resolve(fanHome, 'vscode', 'fantom-docs-nav.json');
 }
 
-export async function getFantomDocs(): Promise<FantomDocs> {
+export async function getFantomDocs(): Promise<FantomDocStructure> {
     console.log("GETTING FANTOM DOCS");
-    console.log(__dirname);
 
     const docsPath = getFanDocsPath();
 
@@ -230,6 +230,7 @@ export async function getFantomDocs(): Promise<FantomDocs> {
 
             try {
                 const docs = JSON.parse(data);
+                console.log(`GOT DOCS from ${docsPath}`);
                 resolve(docs);
             } catch (parseErr: any) {
                 reject(`Error parsing Fantom docs JSON: ${parseErr.message}`);
@@ -238,9 +239,8 @@ export async function getFantomDocs(): Promise<FantomDocs> {
     });
 }
 
-export async function getFantomNav(): Promise<FantomDocs> {
+export async function getFantomNav(): Promise<FantomNavStructure> {
     console.log("GETTING FANTOM NAV");
-    console.log(__dirname);
 
     const docsPath = getFanNavPath();
 
@@ -253,6 +253,7 @@ export async function getFantomNav(): Promise<FantomDocs> {
 
             try {
                 const docs = JSON.parse(data);
+                console.log(`GOT NAV from ${docsPath}`);
                 resolve(docs);
             } catch (parseErr: any) {
                 reject(`Error parsing Fantom docs JSON: ${parseErr.message}`);
@@ -260,3 +261,29 @@ export async function getFantomNav(): Promise<FantomDocs> {
         });
     });
 }
+
+export type FantomDocStructure = 
+{
+    name: string;
+    type: string;
+    classes: {  name: string; 
+                type: string;
+                facets: string[];
+                methods: {  name: string; type: string;
+                            params: {name: string; type: string;}[];
+                            }[];
+                fields: { name: string; type: string;}[];
+            }[];
+};
+
+// Removed redundant array notation as the type already represents an array
+export type FantomNavStructure = 
+{
+    name: string;
+    type: string;
+    classes: {  name: string; 
+                type: string;
+                methods: { name: string; type: string;}[];
+                fields: { name: string; type: string;}[];
+            }[];
+};

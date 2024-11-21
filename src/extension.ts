@@ -39,18 +39,6 @@ function logDebug(message: string) {
     }
 }
 
-// Define type for DocsData
-interface DocsData {
-    name: string;
-    classes: {
-        name: string;
-        slots: {
-            name: string;
-            documentation: string;
-        }[];
-    }[];
-}
-
 export function activate(context: vscode.ExtensionContext) {
     logDebug('Activating Fantom support extension...');
 
@@ -90,8 +78,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     logDebug('Language client initialized.');
 
-    // Pass the outputChannel to the providers
-    const fantomDocsProvider = new FantomDocsProvider(outputChannel);
+    // Pass the outputChannel and context to the providers
+    const fantomDocsProvider = new FantomDocsProvider(outputChannel, context);
     const detailsProvider = new FantomDocsDetailsProvider(context, outputChannel);
 
     // Collect disposables
@@ -106,17 +94,19 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
             
-            logDebug(`Showing details for ${item.type}: ${item.label}`);
+            logDebug(` ** details requested for ${item.qname} **`);
             detailsProvider.showSlotDetails(
                 item.label || 'Unnamed Item', 
-                item.documentation || 'No documentation available'
+                item.type || 'No type',
+                item.qname || 'No qname',
             );
         }),
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
                 logDebug('Configuration changed.');
-                const newConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
-                client.sendNotification('workspace/didChangeConfiguration', { settings: newConfig });
+                fantomConfig = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+                debug = fantomConfig.get<boolean>('enableLogging', false);
+                client.sendNotification('workspace/didChangeConfiguration', { settings: fantomConfig });
             }
         })
     );
@@ -126,35 +116,6 @@ export function activate(context: vscode.ExtensionContext) {
     // Start the client. This will also launch the server
     client.start();
     logDebug('Client started.');
-
-    // Handle client readiness
-    client.onDidChangeState((event) => {
-        if (event.newState === 2) { // 2 corresponds to "Running" state
-            logDebug('Client is ready.');
-
-            // Send diagnostics request
-            client.sendRequest('workspace/diagnostics', {
-                documentSelector: [{ language: 'fantom' }],
-            });
-            logDebug('Diagnostics request sent.');
-
-            // Fetch documentation data from the server and populate the tree view
-            client.sendRequest<DocsData[]>('docs/getDocsData').then((data) => {
-                if (data) {
-                    logDebug('Received documentation data.');
-                    fantomDocsProvider.setPods(data);
-                }
-            });
-
-            // Listen for updates to documentation data
-            client.onNotification('docs/updateDocsData', (updatedData: DocsData[]) => {
-                if (updatedData) {
-                    logDebug('Received updated documentation data.');
-                    fantomDocsProvider.setPods(updatedData);
-                }
-            });
-        }
-    });
 }
 
 export function deactivate(): Thenable<void> | undefined {
