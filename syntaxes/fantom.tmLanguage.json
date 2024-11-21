@@ -10,6 +10,9 @@
     },
     {
       "include": "#core"
+    },
+    {
+      "include": "#symbols"
     }
   ],
   "repository": {
@@ -158,7 +161,7 @@
         },
         {
           "name": "keyword.control.loop.fantom",
-          "match": "\\b(for|while|do|foreach)\\b"
+          "match": "\\b(for|while|do|foreach|each)\\b"
         },
         {
           "name": "keyword.control.switch.fantom",
@@ -327,6 +330,86 @@
         {
           "name": "variable.other.interpolated.fantom",
           "match": "(?x)\\$(\\{.*?\\}|([A-Za-z_][_\\w]*\\.?)+)"
+        }
+      ]
+    }, 
+    "symbols": {
+      "patterns": [
+        {
+          "include": "#function_names"
+        },
+        {
+          "include": "#variable_names"
+        },
+        {
+          "include": "#type_names"
+        },
+        {
+          "include": "#class_names"
+        }
+      ]
+    },
+    "function_names": {
+      "patterns": [
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<!\\.)\\b([_a-zA-Z][_a-zA-Z0-9]*)\\s*\\("
+        },
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<=\\.)\\b([_a-zA-Z][_a-zA-Z0-9]*)\\s*\\("
+        },
+        {
+          "name": "entity.name.function.fantom",
+          "match": "(?<=\\.)[a-zA-Z][a-zA-Z0-9]*(?=\\.)"
+        }
+      ]
+    },
+    "variable_names": {
+      "patterns": [
+        {
+          "name": "keyword.control.loop.fantom",
+          "match": "\\|(?=.*\\|)|(?<=|.*)\\|"
+        },
+        {
+          "name": "variable.parameter.lambda.fantom",
+          "match": "\\|\\s*(?:\\w+\\s+)?\\s*(\\w+)\\s*\\|"
+        },
+        {
+          "name": "variable.parameter.lambda.fantom",
+          "match": "\\|\\s*(?:\\w+\\s+)?(\\w+)\\s*(\\||,)"
+        }
+      ]
+    },
+    "type_names": {
+      "patterns": [
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "(?<!\b(?:if|else)\\s*)\\(\\s*(\\w+)(?=\\s*\\w* |\\?)"
+        },
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "\\w+\\??(?=\\s+\\w+\\s*(:=|\\)|\\(|,))"
+        },
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "(\\w+)::(\\w+)"
+        },
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "\\b[A-Z]\\w*\\b"
+        },
+        {
+          "name": "support.other.facet.fantom",
+          "match": "@\\w+"
+        }
+      ]
+    },
+    "class_names": {
+      "patterns": [
+        {
+          "name": "entity.name.type.class.fantom",
+          "match": "(?<=\\bclass )\\w+|(?<=:\\s*)\\w+"
         }
       ]
     }

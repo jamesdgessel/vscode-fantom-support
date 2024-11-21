@@ -6,6 +6,7 @@ out/
 # Ignore compiled JavaScript and map files
 *.js
 *.js.map
+!esbuild.js
 
 # Logs
 *.log
@@ -14,11 +15,8 @@ out/
 .vscode-test/
 
 # Local environment and IDE-specific files
-.vscodeignore
-.vscode-test.mjs
+# .vscodeignore
+# .vscode-test.mjs
 
 # Dependency lock file (optional)
 package-lock.json
-
-#vscode 
-.vscode/
