@@ -34,13 +34,34 @@ class FantomDocItem extends vscode.TreeItem {
         public readonly type: FantomDocType,
         public readonly qname: string,
         public readonly documentation: string,
-        public readonly details: { name: string; type: string; qname: string; public: Boolean}
+        public readonly details: { name: string; type: string; qname: string; public: Boolean; base?: string },
+        public readonly parent?: FantomDocItem
     ) {
         super(label, collapsibleState);
 
         this.iconPath = this.getIconPath(type);
         this.tooltip = this.qname;
-        this.description = this.details.public ? 'Public' : 'Private';
+
+        if (this.type === FantomDocType.Method || this.type === FantomDocType.Field) {
+            const podName = this.qname.split('::')[0];
+            const parentPodName = this.parent?.qname.split('::')[0]; // Assuming parent pod name is part of parent's qname
+            if (podName !== parentPodName) {
+            this.description = ` <- ${podName}`;
+            }
+            if (this.details.public === false) {
+                this.description = (this.description || '') + ' [private]';
+            }
+        }
+
+        if (this.type === FantomDocType.Class) {
+            if (this.details.public == false) {
+            this.description = 'Private';
+            this.iconPath = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('disabledForeground'));
+            if (this.details.base) {
+                this.description += ` (Base: ${this.details.base})`;
+            }
+            }
+        }
 
         // Fix the command structure
         this.command = {
@@ -143,7 +164,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             FantomDocType.Pod,
                             `pod: ${pod.qname}`,
                             `Children for Pod: ${pod.name}`,
-                            { ...pod, public: true}
+                            { ...pod, public: true }
                         )
                 )
             );
@@ -162,29 +183,18 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                                 FantomDocType.Class,
                                 cls.qname,
                                 `Children for Class: ${cls.name}`,
-                                cls
+                                cls,
+                                element // Set parent as the current pod element
                             )
                     )
                 );
             case FantomDocType.Class:
-                // Children: Methods and Fields
+                // Children: Fields and Methods
                 const classItem = this.pods
                     .flatMap((pod) => pod.classes)
                     .find((cls) => cls.name === element.label);
                 const methods = classItem?.methods || [];
                 const fields = classItem?.fields || [];
-
-                const methodItems = methods.map(
-                    (method) =>
-                        new FantomDocItem(
-                            method.name,
-                            vscode.TreeItemCollapsibleState.None,
-                            FantomDocType.Method,
-                            method.qname,
-                            method.type,
-                            method
-                        )
-                );
 
                 const fieldItems = fields.map(
                     (field) =>
@@ -194,11 +204,32 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             FantomDocType.Field,
                             field.qname,
                             field.type,
-                            field
+                            field,
+                            element // Set parent as the current class element
                         )
                 );
 
-                return Promise.resolve([...methodItems, ...fieldItems]);
+                const methodItems = methods.map(
+                    (method) =>
+                        new FantomDocItem(
+                            method.name,
+                            vscode.TreeItemCollapsibleState.None,
+                            FantomDocType.Method,
+                            method.qname,
+                            method.type,
+                            method,
+                            element // Set parent as the current class element
+                        )
+                );
+
+                // Sort methods to place inherited methods last
+                const sortedMethodItems = methodItems.sort((a, b) => {
+                    const aInherited = typeof a.description === 'string' && a.description.includes('<-');
+                    const bInherited = typeof b.description === 'string' && b.description.includes('<-');
+                    return aInherited === bInherited ? 0 : aInherited ? 1 : -1;
+                });
+
+                return Promise.resolve([...fieldItems, ...sortedMethodItems]);
             case FantomDocType.Method:
                 // No children
                 return Promise.resolve([]);
@@ -342,12 +373,14 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
      * Format the slot details into full HTML using the template.
      */
     private formatHtml(detail: any): string {
-        this.logDebug(`detail: ${JSON.stringify(detail)}`);
-        return this.getHtmlContent().replace('{type}', detail.type)
-                                    .replace('{qname}', detail.qname)
-                                    .replace('{documentation}', detail.doc)
-                                    .replace('{returns}', detail.returns);;
+        let formattedHtml = this.getHtmlContent();
+        for (const [key, value] of Object.entries(detail)) {
+            const placeholder = `{${key}}`;
+            formattedHtml = formattedHtml.replace(new RegExp(placeholder, 'g'), String(value) || '');
+        }
+        return formattedHtml;
     }
+
 
     /**
      * Wrap HTML content with basic structure.
@@ -409,25 +442,19 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
                 </style>
             </head>
             <body>
-                <h1>Slot Details</h1>
+                <h1>{qname}</h1>
                 <div class="section">
-                    <div class="section-title">Type</div>
-                    <div class="section-content">{type}</div>
-                </div>
-                <div class="section">
-                    <div class="section-title">Qualified Name</div>
-                    <div class="section-content">{qname}</div>
+                    <div style="color: gray !important;" class="section-title">{type}</div>
                 </div>
                 <div class="section">
                     <div class="section-title">Documentation</div>
-                    <div class="section-content">{documentation}</div>
+                    <div class="section-content">{doc}</div>
                 </div>
                 <div class="section">
                     <div class="section-title">Returns</div>
                     <div class="section-content">{returns}</div>
                 </div>
                 <div class="footer">
-                    Powered by <a href="https://fantom-lang.org/" target="_blank">Fantom</a>
                 </div>
             </body>
             </html>`;

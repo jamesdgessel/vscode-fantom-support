@@ -184,14 +184,14 @@ export type FantomDocs = {
 export async function initFantomDocs(): Promise<string> {
     console.log("INITIALIZING FANTOM DOCS");
     try {
-        const out = await executeFanScript(path.resolve(__dirname, "../../src/fan/buildDocs.fan"), []);
+        const out = await executeFanScript(path.resolve(__dirname, "../../server/fan/buildDocs.fan"), []);
         console.log("BUILT FANTOM DOCS");
         console.log(out);
+        return out; // Return the output here
     } catch (error) {
         console.error("Error initializing Fantom docs:", error);
-        throw error;
+        return "Error initializing Fantom docs. Please check the logs for more details.";
     }
-    return executeFanScript(path.resolve(__dirname, "../../src/fan/buildDocs.fan"), []);
 }
 
 function getFanHome(): string {

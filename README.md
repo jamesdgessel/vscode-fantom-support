@@ -1,71 +1,26 @@
-# fantom-support README
+# Fantom Support Extension for Visual Studio Code
 
-This is the README for your extension "fantom-support". After writing up a brief description, we recommend including the following sections.
+Fantom language server for vscode. 
+
+Here's the thing - I have no idea what I'm doing. This is my first ever typescript (or javascript) project. I built this while trying to learn the Fantom language to help myself out. 
+
+So... set your expectations accordingly :D I'll maintain it as long as it helps me (or you) out. 
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by [mgiannini]`https://packagecontrol.io/packages/Fantom` and [amackay]`https://github.com/a-mackay/fantom-syntax-highlighting`, adding highlights for classes, methods, fields, types, and variables (beta) using semantic tokens. 
+- **Outline View**: For visualizing classes, methods, and fields.
+- **Fantom Docs**: Navigable fantom docs (built from pods) in the vscode sidebar. This one is cool.  
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Features In Development
+- **Auto-Completion**: Intelligent code suggestions tailored to Fantom, improving coding speed and accuracy.
+- **Code Snippets**: Predefined snippets for common Fantom constructs, reducing repetitive typing.
+- **Dynamic Updates**: Real-time syntax highlighting for variable declarations and usage instances.
+- **Customizable Settings**: Enable or disable syntax highlighting elements directly from the settings menu.
+- **Code Formatting**: So you're always up to Brian's standards ;) 
+- **Hover Documentation**: Hover over classes, types, methods, fields to view information. 
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Make sure you have FAN_HOME in your path, otherwise docs will not work. 
+- Otherwise... idk try it out and we'll see if it works. 

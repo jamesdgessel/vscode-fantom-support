@@ -3,7 +3,6 @@ import { Connection } from 'vscode-languageserver';
 import { tokenLegend } from '../utils/tokenTypes';
 
 // Initializes and returns server capabilities
-// Initializes and returns server capabilities
 export function initializeCapabilities(connection: Connection, settings: any): InitializeResult {
     const capabilities: ServerCapabilities = {
         // Synchronizes text documents with the server

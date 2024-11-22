@@ -1,0 +1,20 @@
+{
+  "name": "fantom-support-client",
+  "version": "0.0.1",
+  "main": "../out/client/extension.js",
+  "scripts": {
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "lint": "eslint src",
+    "test": "mocha --require ts-node/register src/**/*.test.ts"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0",
+    "fantom-support-server": "0.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.95.0"
+  }
+}

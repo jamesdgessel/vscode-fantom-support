@@ -1,16 +1,16 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "watch",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": [],
-			"label": "npm: watch",
-			"detail": "npm-run-all -p watch:*"
-		}
-	]
-}
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build",
+        "type": "npm",
+        "script": "build",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": ["$tsc"],
+        "detail": "This task runs the build script defined in package.json."
+      }
+    ]
+  }

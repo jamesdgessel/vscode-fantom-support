@@ -1,18 +1,12 @@
 {
-	"compilerOptions": {
-	  "module": "commonjs",
-	  "target": "ES2019",
-	  "lib": ["ES2019"],
-	  "outDir": "out",
-	  "rootDir": "src",
-	  "strict": true,
-	  "esModuleInterop": true,
-	  "sourceMap": true,
-	  "composite": true
-	},
-	"include": ["src"],
+	"files": [],
 	"references": [
-	  { "path": "./server" }
-	]
+	  { "path": "./server" },
+	  { "path": "./client" }
+	],
+	"compilerOptions": {
+	  "composite": true,
+	  "skipLibCheck": true
+	}
   }
   
