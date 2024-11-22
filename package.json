@@ -1,7 +1,7 @@
 {
   "name": "fantom-support",
   "version": "0.0.1",
-  "publisher": "SkyforgeAnalytics",
+  "publisher": "jamesdgessel",
   "displayName": "Fantom Language Support",
   "description": "Support for Fantom language in VSCode.",
   "repository": {
@@ -76,13 +76,6 @@
     "lint": "npm run lint --workspaces",
     "watch": "npm-run-all --parallel watch:client watch:server"
   },
-  "files": [
-    "out/**/*",
-    "client/**/*",
-    "server/**/*",
-    "language-configuration.json",
-    "resources/**/*"
-  ],
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
   },
