@@ -1,20 +1,21 @@
 {
   "name": "fantom-support",
+  "version": "0.0.1",
   "publisher": "SkyforgeAnalytics",
-  "displayName": "fantom-support",
-  "description": "Support for Fantom language",
+  "displayName": "Fantom Language Support",
+  "description": "Support for Fantom language in VSCode.",
   "repository": {
     "type": "git",
     "url": "https://github.com/jamesdgessel/vscode-fantom-support"
   },
-  "version": "0.0.1",
   "engines": {
     "vscode": "^1.95.0"
   },
   "categories": [
     "Programming Languages"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/client/extension.js",
+  "activationEvents": [],
   "contributes": {
     "languages": [
       {
@@ -33,7 +34,7 @@
       {
         "language": "fantom",
         "scopeName": "source.fantom",
-        "path": "./syntaxes/fantom.tmLanguage.json"
+        "path": "./client/syntaxes/fantom.tmLanguage.json"
       }
     ],
     "viewsContainers": {
@@ -66,14 +67,22 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "postinstall": "cd server && npm install",
-    "lint": "eslint src",
-    "test": "vscode-test",
-    "prepare": "npm run compile"
+    "build": "npm run compile",
+    "compile": "npm run compile:client && npm run compile:server",
+    "compile:client": "tsc -b ./client/tsconfig.json",
+    "compile:server": "tsc -b ./server/tsconfig.json && npm run copy:fan",
+    "copy:fan": "copyfiles -u 2 \"server/**/*.fan\" \"out/server\"",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "watch": "npm-run-all --parallel watch:client watch:server"
   },
+  "files": [
+    "out/**/*",
+    "client/**/*",
+    "server/**/*",
+    "language-configuration.json",
+    "resources/**/*"
+  ],
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
   },
@@ -85,9 +94,15 @@
     "@typescript-eslint/parser": "^8.7.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
+    "copyfiles": "^2.4.1",
     "esbuild": "^0.24.0",
     "eslint": "^9.13.0",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.6.3"
-  }
+  },
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ]
 }

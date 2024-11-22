@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-let debug = false; // Initialize debug flag
+let debug = true; // Initialize debug flag
 
 // Update debug flag when configuration changes
 vscode.workspace.onDidChangeConfiguration((event) => {
@@ -34,13 +34,37 @@ class FantomDocItem extends vscode.TreeItem {
         public readonly type: FantomDocType,
         public readonly qname: string,
         public readonly documentation: string,
-        public readonly details: { name: string; type: string; qname: string; public: Boolean}
+        public readonly details: { name: string; type: string; qname: string; public: Boolean; base?: string },
+        public readonly parent?: FantomDocItem
     ) {
         super(label, collapsibleState);
 
         this.iconPath = this.getIconPath(type);
         this.tooltip = this.qname;
-        this.description = this.details.public ? 'Public' : 'Private';
+        if (this.type !== FantomDocType.Pod) {
+            this.description = this.details.public == true ? 'Public' : this.details.public == false ? 'Private' : '';
+        }
+
+        if (this.type === FantomDocType.Method || this.type === FantomDocType.Field) {
+            const podName = this.qname.split('::')[0];
+            const parentPodName = this.parent?.qname.split('::')[0]; // Assuming parent pod name is part of parent's qname
+            if (podName !== parentPodName) {
+            this.description += ` <- ${podName}`;
+            this.iconPath = new vscode.ThemeIcon(
+                this.type === FantomDocType.Method ? 'symbol-method' : 'symbol-field',
+                new vscode.ThemeColor('disabledForeground')
+            );
+            }
+        }
+
+        if (this.type === FantomDocType.Class) {
+            if (this.details.public == false) {
+            this.iconPath = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('disabledForeground'));
+            }
+            if (this.details.base) {
+            this.description += ` (Base: ${this.details.base})`;
+            }
+        }
 
         // Fix the command structure
         this.command = {
@@ -143,7 +167,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             FantomDocType.Pod,
                             `pod: ${pod.qname}`,
                             `Children for Pod: ${pod.name}`,
-                            { ...pod, public: true}
+                            { ...pod, public: true }
                         )
                 )
             );
@@ -162,29 +186,18 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                                 FantomDocType.Class,
                                 cls.qname,
                                 `Children for Class: ${cls.name}`,
-                                cls
+                                cls,
+                                element // Set parent as the current pod element
                             )
                     )
                 );
             case FantomDocType.Class:
-                // Children: Methods and Fields
+                // Children: Fields and Methods
                 const classItem = this.pods
                     .flatMap((pod) => pod.classes)
                     .find((cls) => cls.name === element.label);
                 const methods = classItem?.methods || [];
                 const fields = classItem?.fields || [];
-
-                const methodItems = methods.map(
-                    (method) =>
-                        new FantomDocItem(
-                            method.name,
-                            vscode.TreeItemCollapsibleState.None,
-                            FantomDocType.Method,
-                            method.qname,
-                            method.type,
-                            method
-                        )
-                );
 
                 const fieldItems = fields.map(
                     (field) =>
@@ -194,11 +207,32 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             FantomDocType.Field,
                             field.qname,
                             field.type,
-                            field
+                            field,
+                            element // Set parent as the current class element
                         )
                 );
 
-                return Promise.resolve([...methodItems, ...fieldItems]);
+                const methodItems = methods.map(
+                    (method) =>
+                        new FantomDocItem(
+                            method.name,
+                            vscode.TreeItemCollapsibleState.None,
+                            FantomDocType.Method,
+                            method.qname,
+                            method.type,
+                            method,
+                            element // Set parent as the current class element
+                        )
+                );
+
+                // Sort methods to place inherited methods last
+                const sortedMethodItems = methodItems.sort((a, b) => {
+                    const aPodName = a.qname.split('::')[0];
+                    const bPodName = b.qname.split('::')[0];
+                    return aPodName === bPodName ? 0 : aPodName < bPodName ? -1 : 1;
+                });
+
+                return Promise.resolve([...fieldItems, ...sortedMethodItems]);
             case FantomDocType.Method:
                 // No children
                 return Promise.resolve([]);

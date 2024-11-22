@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
     logDebug('Activating Fantom support extension...');
 
     // Path to the server module
-    const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
+    const serverModule = context.asAbsolutePath(path.join('out', 'server', 'server.js'));
     const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
     // Server options to run or debug the language server

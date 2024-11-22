@@ -81,7 +81,6 @@ class DocBuilder
         //build docs
         pods := Pod.list
         docs := pods.map |Pod pod -> [sys::Str:sys::Obj?]?| { 
-            echo("  -- generating ${pod.toStr} docs -- ")
             return podBuilder(pod) 
             }
         

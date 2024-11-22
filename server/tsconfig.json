@@ -1,17 +1,12 @@
 {
-    "compilerOptions": {
-      "module": "commonjs",
-      "target": "ES2019",
-      "lib": ["ES2019"],
-      "outDir": "out",
-      "rootDir": "src",
-      "strict": true,
-      "esModuleInterop": true,
-      "sourceMap": true,
-      "composite": true,
-      "resolveJsonModule": true,
-      "types": ["node"]
-    },
-    "include": ["src"]
-  }
-  
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../out/server",
+    "rootDir": "./src",
+    "module": "commonjs",
+    "lib": ["es2020"],
+    "target": "es2020"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
