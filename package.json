@@ -9,7 +9,7 @@
     "url": "https://github.com/jamesdgessel/vscode-fantom-support"
   },
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.81.0"
   },
   "categories": [
     "Programming Languages"
@@ -67,22 +67,26 @@
     ]
   },
   "scripts": {
-    "build": "npm run compile",
+    "build": "npm run compile && vsce package",
     "compile": "npm run compile:client && npm run compile:server",
     "compile:client": "tsc -b ./client/tsconfig.json",
     "compile:server": "tsc -b ./server/tsconfig.json && npm run copy:fan",
     "copy:fan": "copyfiles -u 2 \"server/**/*.fan\" \"out/server\"",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
-    "watch": "npm-run-all --parallel watch:client watch:server"
+    "watch": "npm-run-all --parallel watch:client watch:server",
+    "watch:client": "tsc -w -b ./client/tsconfig.json",
+    "watch:server": "tsc -w -b ./server/tsconfig.json"
   },
   "dependencies": {
+    "@types/vscode": "^1.95.0",
+    "vscode-languageserver": "^8.1.0",
+    "vscode-languageserver-textdocument": "^1.0.0",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
-    "@types/vscode": "^1.95.0",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.7.0",
     "@vscode/test-cli": "^0.0.10",
