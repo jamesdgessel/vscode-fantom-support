@@ -1,21 +1,19 @@
 {
   "name": "fantom-support-server",
+  "private": true,
   "version": "0.0.1",
   "main": "../out/server/server.js",
   "scripts": {
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
+    "compile": "node ../esbuild.config.mjs --server",
+    "watch": "node ../esbuild.config.mjs --server --watch",
     "lint": "eslint src",
-    "test": "mocha --require ts-node/register src/**/*.test.ts",
-    "postCompile": "npm run copy-non-ts",
-    "copy-non-ts": "copyfiles -u 2 \"src/**/*.!(ts)\" out/server"
+    "test": "mocha --require ts-node/register src/**/*.test.ts"
   },
   "dependencies": {
     "vscode-languageserver": "^8.1.0",
     "vscode-languageserver-textdocument": "^1.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
     "@types/node": "20.x"
   }
 }

@@ -40,7 +40,7 @@ function logDebug(message: string) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    logDebug('Activating Fantom support extension...');
+    console.log('Activating Fantom support extension...');
 
     // Path to the server module
     const serverModule = context.asAbsolutePath(path.join('out', 'server', 'server.js'));

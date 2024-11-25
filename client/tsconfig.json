@@ -3,11 +3,10 @@
     "compilerOptions": {
       "outDir": "../out/client",
       "rootDir": "./src",
-      "module": "commonjs",
+      "module": "ESNext",
       "lib": ["es2020", "dom"],
       "target": "es2020"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules"]
   }
-  
