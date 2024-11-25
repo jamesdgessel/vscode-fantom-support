@@ -46,7 +46,7 @@ export function runFanFile(scriptName: string, args: string[]): Promise<string> 
  */
 export async function fanDocLookup(input: string): Promise<string> {
     try {
-        console.log("getting fantom docs for", input);
+        // console.log("getting fantom docs for", input);
         const docs = await getFantomDocs();
         const result = findInDocs(docs, input);
         if (result) {
@@ -63,7 +63,7 @@ export async function fanDocLookup(input: string): Promise<string> {
 function findInDocs(obj: any, name: string): string | null {
     try {
         if (obj && obj.name === name) { 
-                console.log(`Found "${name}"`);
+                // console.log(`Found "${name}"`);
                 
                 // Construct the result string as Markdown
                 let result = `${obj.qname}\n\n`;
@@ -215,7 +215,7 @@ function getFanNavPath(): string {
 }
 
 export async function getFantomDocs(): Promise<FantomDocStructure> {
-    console.log("GETTING FANTOM DOCS");
+    // console.log("GETTING FANTOM DOCS");
 
     const docsPath = getFanDocsPath();
 
@@ -238,7 +238,7 @@ export async function getFantomDocs(): Promise<FantomDocStructure> {
 }
 
 export async function getFantomNav(): Promise<FantomNavStructure> {
-    console.log("GETTING FANTOM NAV");
+    // console.log("GETTING FANTOM NAV");
 
     const docsPath = getFanNavPath();
 

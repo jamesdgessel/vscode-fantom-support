@@ -34,7 +34,7 @@ vscode.workspace.onDidChangeConfiguration((event) => {
 
 // Helper function for debug logging
 function logDebug(message: string) {
-    if (true) {
+    if (false) {
         outputChannel.appendLine(message);
     }
 }

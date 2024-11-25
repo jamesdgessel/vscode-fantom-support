@@ -1,6 +1,6 @@
 {
   "name": "fantom-support",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "jamesdgessel",
   "displayName": "Fantom Language Support",
   "description": "Support for Fantom language in VSCode.",
