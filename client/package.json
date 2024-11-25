@@ -4,9 +4,15 @@
   "version": "0.0.1",
   "main": "../out/client/extension.js",
   "scripts": {
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
+    "compile": "node ../esbuild.config.mjs --client",
+    "watch": "node ../esbuild.config.mjs --client --watch",
     "lint": "eslint src",
     "test": "mocha --require ts-node/register src/**/*.test.ts"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.95.0"
   }
 }

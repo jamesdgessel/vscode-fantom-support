@@ -46,6 +46,7 @@ export function runFanFile(scriptName: string, args: string[]): Promise<string> 
  */
 export function fanDocLookup(input: string): Promise<string> {
     return new Promise((resolve, reject) => {
+        console.log(`Current directory: ${__dirname}`);
         const fanHome = process.env.FAN_HOME;
         if (!fanHome) {
             reject('FAN_HOME environment variable is not set. Please set FAN_HOME to your Fantom installation directory.');
@@ -55,12 +56,13 @@ export function fanDocLookup(input: string): Promise<string> {
         // Determine the Fantom executable based on the operating system
         let fantomExecutable = '';
         let fantomArgs: string[] = [];
+        const fantomScriptPath = path.resolve(__dirname, "../server/fan/docLookup.fan");
         if (process.platform === 'win32') {
             fantomExecutable = path.join(fanHome, 'bin', 'fan.bat');
-            fantomArgs = [path.resolve(__dirname, "../../src/fan/docLookup.fan"), input];
+            fantomArgs = [fantomScriptPath, input];
         } else {
             fantomExecutable = path.join(fanHome, 'bin', 'fan');
-            fantomArgs = [path.resolve(__dirname, "../../src/fan/docLookup.fan"), input];
+            fantomArgs = [fantomScriptPath, input];
         }
 
         // Check if the Fantom executable exists
@@ -70,7 +72,6 @@ export function fanDocLookup(input: string): Promise<string> {
         }
 
         // Check if the Fantom script exists
-        const fantomScriptPath = fantomArgs[0];
         if (!fs.existsSync(fantomScriptPath)) {
             reject(`Fantom script not found at "${fantomScriptPath}". Please ensure the script exists.`);
             return;
@@ -107,6 +108,7 @@ export function fanDocLookup(input: string): Promise<string> {
         }
     });
 }
+
 /**
  * General function to execute a Fantom script with specified arguments.
  * @param scriptPath The path to the Fantom script file.
@@ -184,7 +186,7 @@ export type FantomDocs = {
 export async function initFantomDocs(): Promise<string> {
     console.log("INITIALIZING FANTOM DOCS");
     try {
-        const out = await executeFanScript(path.resolve(__dirname, "../../server/fan/buildDocs.fan"), []);
+        const out = await executeFanScript(path.resolve(__dirname, "../server/fan/buildDocs.fan"), []);
         console.log("BUILT FANTOM DOCS");
         console.log(out);
         return out; // Return the output here
