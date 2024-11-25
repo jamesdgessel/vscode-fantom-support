@@ -44,69 +44,65 @@ export function runFanFile(scriptName: string, args: string[]): Promise<string> 
  * Executes the Fantom docLookup.fan script.
  * @returns A Promise that resolves to the script's output, or rejects with an error.
  */
-export function fanDocLookup(input: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        console.log(`Current directory: ${__dirname}`);
-        const fanHome = process.env.FAN_HOME;
-        if (!fanHome) {
-            reject('FAN_HOME environment variable is not set. Please set FAN_HOME to your Fantom installation directory.');
-            return;
-        }
-
-        // Determine the Fantom executable based on the operating system
-        let fantomExecutable = '';
-        let fantomArgs: string[] = [];
-        const fantomScriptPath = path.resolve(__dirname, "../server/fan/docLookup.fan");
-        if (process.platform === 'win32') {
-            fantomExecutable = path.join(fanHome, 'bin', 'fan.bat');
-            fantomArgs = [fantomScriptPath, input];
+export async function fanDocLookup(input: string): Promise<string> {
+    try {
+        console.log("getting fantom docs for", input);
+        const docs = await getFantomDocs();
+        const result = findInDocs(docs, input);
+        if (result) {
+            return result;
         } else {
-            fantomExecutable = path.join(fanHome, 'bin', 'fan');
-            fantomArgs = [fantomScriptPath, input];
+            return `No match found for "${input}"`;
         }
+    } catch (error) {
+        console.error('Error fetching Fantom docs:', error);
+        throw new Error('Error fetching Fantom docs. Please check the logs for more details.');
+    }
+}
 
-        // Check if the Fantom executable exists
-        if (!fs.existsSync(fantomExecutable)) {
-            reject(`Fantom executable not found at "${fantomExecutable}". Please ensure Fantom is installed correctly and FAN_HOME is set.`);
-            return;
+function findInDocs(obj: any, name: string): string | null {
+    try {
+        if (obj && obj.name === name) { 
+                console.log(`Found "${name}"`);
+                
+                // Construct the result string as Markdown
+                let result = `${obj.qname}\n\n`;
+            
+                if (obj.signature) {
+                        result += `
+\`\`\`fantom
+${obj.signature}
+\`\`\`
+`;
+                }
+        
+            return result;
         }
+        
+        
 
-        // Check if the Fantom script exists
-        if (!fs.existsSync(fantomScriptPath)) {
-            reject(`Fantom script not found at "${fantomScriptPath}". Please ensure the script exists.`);
-            return;
+        if (Array.isArray(obj)) {
+            for (const item of obj) {
+                const found = findInDocs(item, name);
+                if (found) {
+                    return found;
+                }
+            }
+        } else if (typeof obj === 'object' && obj !== null) {
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    const found = findInDocs(obj[key], name);
+                    if (found) {
+                        return found;
+                    }
+                }
+            }
         }
+    } catch (error) {
+        console.error(`Error in findInDocs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
-        // On Windows, execute fan.bat via cmd.exe
-        if (process.platform === 'win32') {
-            execFile('cmd.exe', ['/c', fantomExecutable, fantomScriptPath, input], (error, stdout, stderr) => {
-                if (error) {
-                    const errorMessage = `Error executing Fantom script "${fantomScriptPath}": ${stderr || error.message}`;
-                    reject(errorMessage);
-                    return;
-                }
-                if (stderr) {
-                    // Non-fatal stderr output
-                    console.debug(`Fantom script stderr: ${stderr}`);
-                }
-                resolve(stdout.trim());
-            });
-        } else {
-            // Unix-like systems
-            execFile(fantomExecutable, fantomArgs, (error, stdout, stderr) => {
-                if (error) {
-                    const errorMessage = `Error executing Fantom script "${fantomScriptPath}": ${stderr || error.message}`;
-                    reject(errorMessage);
-                    return;
-                }
-                if (stderr) {
-                    // Non-fatal stderr output
-                    console.debug(`Fantom script stderr: ${stderr}`);
-                }
-                resolve(stdout.trim());
-            });
-        }
-    });
+    return null;
 }
 
 /**

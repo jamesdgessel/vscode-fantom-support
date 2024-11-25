@@ -378,8 +378,33 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
             const placeholder = `{${key}}`;
             formattedHtml = formattedHtml.replace(new RegExp(placeholder, 'g'), String(value) || '');
         }
+    
+        // Generate the link based on the type and qname
+    if (detail.qname) {
+        const qnameParts = detail.qname.split(/[:.]/); // Split by '::' or '.'
+        this.logDebug(qnameParts.toString());
+        let link = "";
+
+        if (detail.qname.startsWith("Pod::")) {
+            link = `${qnameParts[2]}`; // Use only 'name' from 'Pod::name'
+        } else {
+            link = `${qnameParts[0]}`; // Start with the pod
+            if (qnameParts.length > 2) {
+                link += `/${qnameParts[2]}`; // Add the class if it exists
+            }
+            if (qnameParts.length > 3) {
+                link += `#${qnameParts[3]}`; // Add the method or field if it exists
+         }
+        }
+
+        formattedHtml = formattedHtml.replace(/{endpoint}/g, link);
+    }
+
+    
         return formattedHtml;
     }
+    
+    
 
 
     /**
@@ -442,7 +467,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
                 </style>
             </head>
             <body>
-                <h1>{qname}</h1>
+                <h3><a href="https://fantom.org/doc/{endpoint}">{qname}</h3>
                 <div class="section">
                     <div style="color: gray !important;" class="section-title">{type}</div>
                 </div>

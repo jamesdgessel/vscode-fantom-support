@@ -16,6 +16,7 @@ class DocBuilder
             [
                 "name": method.name,
                 "qname": method.qname,
+                "signature":method.signature,
                 "type": "method",
                 "params": method.params.map |param| 
                 {[
@@ -38,6 +39,7 @@ class DocBuilder
         [
             "name": field.name,
             "qname": field.qname,
+            "signature": field.signature,
             "type": "field",
             "doc": field.doc ?: ""
         ]
