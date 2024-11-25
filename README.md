@@ -8,7 +8,7 @@ So... set your expectations accordingly :D I'll maintain it as long as it helps 
 
 ## Features
 
-- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by [mgiannini]`https://packagecontrol.io/packages/Fantom` and [amackay]`https://github.com/a-mackay/fantom-syntax-highlighting`, adding highlights for classes, methods, fields, types, and variables (beta) using semantic tokens. 
+- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by [mgiannini](https://packagecontrol.io/packages/Fantom) and [amackay](https://github.com/a-mackay/fantom-syntax-highlighting), adding highlights for classes, methods, fields, types, and variables (beta) using semantic tokens.
 - **Outline View**: For visualizing classes, methods, and fields.
 - **Fantom Docs**: Navigable fantom docs (built from pods) in the vscode sidebar. This one is cool.  
 
