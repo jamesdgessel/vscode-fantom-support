@@ -2,11 +2,11 @@
     "extends": "../tsconfig.base.json",
     "compilerOptions": {
       "outDir": "../out/client",
-      "rootDir": "./src",
+      "rootDir": "../",
       "module": "ESNext",
       "lib": ["es2020", "dom"],
       "target": "es2020"
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "../server/src/utils/**/*", "src/providers/fantomDocsProvider.ts"],
     "exclude": ["node_modules"]
-  }
+}

@@ -17,3 +17,5 @@ out/
 
 # Dependency lock file (optional)
 package-lock.json
+
+./*.vsix

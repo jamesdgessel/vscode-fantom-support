@@ -6,7 +6,7 @@ import {
     ServerOptions,
     TransportKind,
 } from 'vscode-languageclient/node';
-import { FantomDocsProvider, FantomDocsDetailsProvider } from './fantomDocsProvider';
+import { FantomDocsProvider, FantomDocsDetailsProvider } from './providers/fantomDocsProvider';
 
 let client: LanguageClient;
 
@@ -39,7 +39,7 @@ function logDebug(message: string) {
     }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Fantom support extension...');
 
     // Path to the server module
@@ -63,11 +63,6 @@ export function activate(context: vscode.ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'fantom' }],
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc'),
-        },
-        initializationOptions: {
-            enableLogging: debug,
-            highlightVariableDeclarations: fantomConfig.get<boolean>('highlightVariableDeclarations', true),
-            highlightVariableUsage: fantomConfig.get<boolean>('highlightVariableUsage', true),
         },
     };
 

@@ -1,7 +1,11 @@
 import { CompletionItem, CompletionItemKind, CompletionParams, Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { TextDocuments } from 'vscode-languageserver/node';
-import { getSettings } from '../utils/settingsManager';
+import { logMessage } from '../utils/notify';
+import { getSettings } from '../utils/settingsHandler';
+
+// Get settings from settings manager
+const settings = getSettings();
 
 // Fantom-specific autocomplete items
 const completionItems: CompletionItem[] = [
@@ -18,7 +22,7 @@ const completionItems: CompletionItem[] = [
         kind: CompletionItemKind.Snippet,
         detail: 'Method Declaration',
         documentation: 'Defines a new method in a class. Example:\n\n`Void myMethod() {}`',
-        insertText: 'Void ${1:methodName}() {\n\t$0\n}',
+        insertText: 'Void ${1:methodName}() \n{\n\t$0\n}',
         insertTextFormat: 2
     },
     {
@@ -30,11 +34,11 @@ const completionItems: CompletionItem[] = [
         insertTextFormat: 2
     },
     {
-        label: 'Sys.out.print',
+        label: 'echo',
         kind: CompletionItemKind.Function,
         detail: 'Prints output to console',
-        documentation: 'Prints a string to the console. Example:\n\n`Sys.out.print("Hello, World!")`',
-        insertText: 'Sys.out.print(${1:"message"});',
+        documentation: 'Prints a string to the console. Example:\n\n`echo("Hello, World!")`',
+        insertText: 'echo(${1:"message"});',
         insertTextFormat: 2
     },
     {
@@ -42,7 +46,7 @@ const completionItems: CompletionItem[] = [
         kind: CompletionItemKind.Keyword,
         detail: 'If Statement',
         documentation: 'Conditional if statement in Fantom. Example:\n\n`if (condition) { }`',
-        insertText: 'if (${1:condition}) {\n\t$0\n}',
+        insertText: 'if (${1:condition}) \n{\n\t$0\n}',
         insertTextFormat: 2
     },
     {
@@ -50,26 +54,20 @@ const completionItems: CompletionItem[] = [
         kind: CompletionItemKind.Keyword,
         detail: 'For Loop',
         documentation: 'For loop in Fantom. Example:\n\n`for (i in 0..<10) { }`',
-        insertText: 'for (${1:i} in ${2:0}..<${3:10}) {\n\t$0\n}',
+        insertText: 'for (${1:i} in ${2:0}..<${3:10}) \n{\n\t$0\n}',
         insertTextFormat: 2
-    },
-    {
-        label: 'it',
-        kind: CompletionItemKind.Keyword,
-        detail: 'Implicit variable for loop iterations',
-        documentation: 'The implicit `it` variable can be used for iterable elements in a loop. Example:\n\n`list.each |it| { Sys.out.print(it) }`',
-        insertText: 'it'
     }
 ];
 
 // Provides Fantom-specific autocomplete suggestions
 export function provideCompletionItems(params: CompletionParams, documents: TextDocuments<TextDocument>, connection: Connection): CompletionItem[] {
-    const settings = getSettings(); // Retrieve settings to control autocomplete behavior if needed
+    const module = "[AUTOCOMPLETE]";
     const doc = documents.get(params.textDocument.uri);
 
     if (doc) {
-        connection.console.log(`Providing Fantom-specific autocomplete suggestions for document: ${doc.uri.split('/').pop()}`);
+        logMessage("debug",`Providing Fantom-specific autocomplete suggestions for document: ${doc.uri.split('/').pop()}`, module, connection);
         // Additional filtering or customization based on `settings` or `params` can be added here.
+        
         return completionItems;
     }
     return [];

@@ -3,6 +3,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logMessage } from '../../../server/src/utils/notify';
+import { execFile } from 'child_process';
+
 
 let debug = false; // Initialize debug flag
 
@@ -23,6 +26,183 @@ export enum FantomDocType {
     Method = 'method',
     Field = 'field',
 }
+
+/**
+ * Fantom config class to manage the extension configuration.
+ */
+export class FantomConfig {
+
+    public fanHome: string;
+    public fanExecutable: string;
+
+    public fanDocsPath: string;
+
+    private config: vscode.WorkspaceConfiguration;
+    private fanBuildDocsPath = "../../server/src/fan/buildDocs.fan";
+
+    private constructor() {
+        this.config = vscode.workspace.getConfiguration('fantomDocs');
+
+        this.fanHome = this.resolveFanHome();
+        this.fanDocsPath = this.resolveFanDocsPath();
+        this.fanExecutable = path.join(this.fanHome,'bin','fan');
+    }
+
+    /**
+     * Factory method to initialize the configuration
+     */
+    public static async init(): Promise<FantomConfig> {
+        const instance = new FantomConfig();
+        await instance.validatePaths();
+        return instance;
+    }
+
+    /**
+     * Validate essential paths and log warnings if not found.
+     */
+    private async validatePaths() {
+
+        const docPath = path.join(this.fanDocsPath, 'vscode', 'fantom-docs.json');
+        const navPath = path.join(this.fanDocsPath, 'vscode', 'fantom-docs-nav.json');
+
+        if (!this.fanHome || !fs.existsSync(this.fanHome)) {
+            logMessage('err', `Invalid FAN_HOME: ${this.fanHome}`, '[FAN CONFIG]');
+            throw new Error('FAN_HOME is not properly configured.');
+        }
+
+        if (!fs.existsSync(docPath)) {
+            logMessage('warn', `Fantom Docs file missing at ${docPath}`, '[FAN CONFIG]');
+        }
+
+        if (!fs.existsSync(navPath)) {
+            logMessage('warn', `Fantom Nav file missing at ${navPath}`, '[FAN CONFIG]');
+        }
+    }
+
+    /**
+     * Retrieve a specific configuration value.
+     */
+    public get<T>(section: string): T | undefined {
+        return this.config.get<T>(section);
+    }
+
+    /**
+     * Resolve the Fantom executable path.
+     */
+    public getFanExecutable(): string {
+        return process.platform === 'win32'
+            ? path.join(this.fanHome, 'bin', 'fan.bat')
+            : path.join(this.fanHome, 'bin', 'fan');
+    }
+
+    /**
+     * Utility method to read and parse a JSON file.
+     */
+    private async readJsonFile(filePath: string): Promise<object> {
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`File not found: ${filePath}`);
+        }
+        const data = fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(data);
+    }
+
+    public async docs(): Promise<object> {
+        return this.readJsonFile(path.join(this.fanDocsPath, 'vscode','fantom-docs.json'));
+    }
+    public async nav(): Promise<object> {
+        return this.readJsonFile(path.join(this.fanDocsPath, 'vscode','fantom-docs-nav.json'));
+    }
+
+    private resolveFanHome(): string {
+    
+        const homeMode = this.config.fantom.homeMode;
+
+        // Check custom path
+        if (homeMode === 'custom') {
+            const customPath = this.config.fantom.homeCustom;
+            if (customPath && fs.existsSync(customPath)) {
+                logMessage('info', 'Using custom Fantom docs path.', '[FANTOM]');
+                return customPath;
+            }
+            logMessage('info', 'Custom path not found. Falling back to local.', '[FANTOM]');
+        }
+    
+        // // Check local path
+        // if (homeMode === 'local' || settings.fantom.homeMode === 'custom') {
+        //     const workspacePath = await findWorkspaceBinPath();
+        //     if (workspacePath) {
+        //         logMessage('info', 'Using local Fantom docs path.', '[FANTOM]', connection);
+        //         return workspacePath;
+        //     }
+        //     logMessage('info', 'Local path not found. Falling back to global.', '[FANTOM]', connection);
+        // }
+    
+        // Check global path
+        const fanHome = process.env.FAN_HOME;
+        if (fanHome && fs.existsSync(fanHome)) {
+            logMessage('info', 'Using global Fantom docs path.', '[FANTOM]');
+            return fanHome;
+        }
+    
+        throw new Error('Fantom docs path not found. Please set "docStore" to "custom", "global", or "local" in settings.');
+    }
+
+    private resolveFanDocsPath(): string {
+
+        switch (this.config.fantom.docStoreMode) {
+            case 'fanHome':
+                return path.join(this.fanHome, 'vscode');
+            case 'custom':
+                return this.config.fantom.docStoreCustom;
+            default:
+                throw new Error('Invalid Fantom docs store mode.');
+        }
+    }
+
+    public async executeFanCmd (scriptName: string, args: string[]): Promise<string> {
+        const fantomExecutable = this.fanExecutable;
+        const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
+    
+        return new Promise((resolve, reject) => {
+            execFile(fantomExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
+                if (error) {
+                    reject(`Error executing Fantom script: ${stderr || error.message}`);
+                    return;
+                }
+                resolve(stdout.trim());
+            });
+        });
+    }
+
+    public async runFanFile(fantomScriptPath: string, args: string[]): Promise<string> {
+    
+        return new Promise((resolve, reject) => {
+            execFile(this.fanExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
+                if (error) {
+                    reject(`Error executing Fantom script: ${stderr || error.message}`);
+                    return;
+                }
+                resolve(stdout.trim());
+            });
+        });
+    }
+
+    public initFantomDocs(): Promise<string> {
+        logMessage('info', 'Initializing Fantom docs.', '[FANTOM]');
+        try {
+            const out = this.runFanFile(this.fanBuildDocsPath,[]);
+            logMessage('info', 'Built Fantom docs.', '[FANTOM]');
+            console.log(out);
+            return out; // Return the output here
+        } catch (error) {
+            console.error("Error initializing Fantom docs:", error);
+            return Promise.reject("Error initializing Fantom docs. Please check the logs for more details.");
+        }
+    }
+
+    
+}
+
 
 /**
  * Represents a single item in the Fantom Docs tree.
@@ -124,8 +304,15 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
         // Load pods data from static JSON file
         const jsonFilePath = path.join(process.env.FAN_HOME || '', 'vscode', 'fantom-docs-nav.json');
-        const podsData = fs.readFileSync(jsonFilePath, 'utf-8');
-        this.pods = JSON.parse(podsData);
+        this.logDebug(`Fan Home: ${process.env.FAN_HOME || ''}`);
+        this.logDebug(`Reading JSON file from: ${jsonFilePath}`);
+        if (fs.existsSync(jsonFilePath)) {
+            const podsData = fs.readFileSync(jsonFilePath, 'utf-8');
+            this.pods = JSON.parse(podsData);
+        } else {
+            this.logDebug(`JSON file not found at ${jsonFilePath}. Initializing with empty pods.`);
+            this.pods = [];
+        }
 
         // Read initial debug configuration
         debug = true;

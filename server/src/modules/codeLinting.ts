@@ -1,10 +1,14 @@
 import { Diagnostic, DiagnosticSeverity, Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getSettings } from '../utils/settingsManager';
+import { getSettings } from '../utils/settingsHandler';
 import { fantomTokenRegex } from '../utils/tokenTypes';
+import { logMessage } from '../utils/notify';
 
 // Lints the document for Fantom-specific issues and returns diagnostics
 export function lintCode(doc: TextDocument, connection: Connection): Diagnostic[] {
+
+    logMessage('info', 'Linting document for Fantom-specific issues', '[LINTER]', connection)
+
     const settings = getSettings(); // Retrieve linting settings
     const diagnostics: Diagnostic[] = [];
     const text = doc.getText();
@@ -14,7 +18,7 @@ export function lintCode(doc: TextDocument, connection: Connection): Diagnostic[
         let match;
 
         // Check for naming conventions in variables if enabled in settings
-        if (settings.checkVariableNaming) {
+        if (settings.linting.checkVariableNaming) {
             while ((match = fantomTokenRegex.variablePattern.exec(line)) !== null) {
                 const variableName = match[1];
                 if (!/^[a-z][a-zA-Z0-9]*$/.test(variableName)) {

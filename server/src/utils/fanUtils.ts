@@ -1,14 +1,16 @@
 import { execFile } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-
+import { getSettings } from './settingsHandler';
+import { logMessage } from './notify'; // Ensure you have a notify module
+import { connection } from '../server'; // Ensure you have a server connection
 
 // Execute a Fantom command
-export function executeFanCmd(scriptName: string, args: string[]): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const fantomExecutable = "fan"; // Ensure "fan" is in your system PATH
-        const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
+export async function executeFanCmd(scriptName: string, args: string[]): Promise<string> {
+    const fantomExecutable = await getFanExecutable();
+    const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
 
+    return new Promise((resolve, reject) => {
         execFile(fantomExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
             if (error) {
                 reject(`Error executing Fantom script: ${stderr || error.message}`);
@@ -19,17 +21,18 @@ export function executeFanCmd(scriptName: string, args: string[]): Promise<strin
     });
 }
 
+
 /**
  * Executes a Fantom file with specified arguments.
  * @param scriptName The name of the Fantom script file (e.g., "TypeSearcher.fan").
  * @param args Arguments to pass to the Fantom script.
  * @returns A Promise that resolves to the script's output, or rejects with an error.
  */
-export function runFanFile(scriptName: string, args: string[]): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const fantomExecutable = "fan"; // Ensure "fan" is in your system PATH
-        const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
+export async function runFanFile(scriptName: string, args: string[]): Promise<string> {
+    const fantomExecutable = await getFanExecutable();
+    const fantomScriptPath = path.resolve(__dirname, "src/fantom", scriptName);
 
+    return new Promise((resolve, reject) => {
         execFile(fantomExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
             if (error) {
                 reject(`Error executing Fantom script: ${stderr || error.message}`);
@@ -79,8 +82,6 @@ ${obj.signature}
             return result;
         }
         
-        
-
         if (Array.isArray(obj)) {
             for (const item of obj) {
                 const found = findInDocs(item, name);
@@ -111,34 +112,15 @@ ${obj.signature}
  * @param args Arguments to pass to the Fantom script.
  * @returns A Promise that resolves to the script's output, or rejects with an error.
  */
-export function executeFanScript(scriptPath: string, args: string[]): Promise<string> {
+export async function executeFanScript(scriptPath: string, args: string[]): Promise<string> {
+    const fantomExecutable = await getFanExecutable();
+
+    // Check if the Fantom script exists
+    if (!fs.existsSync(scriptPath)) {
+        throw new Error(`Fantom script not found at "${scriptPath}". Please ensure the script exists.`);
+    }
+
     return new Promise((resolve, reject) => {
-        const fanHome = process.env.FAN_HOME;
-        if (!fanHome) {
-            reject('FAN_HOME environment variable is not set. Please set FAN_HOME to your Fantom installation directory.');
-            return;
-        }
-
-        // Determine the Fantom executable based on the operating system
-        let fantomExecutable = '';
-        if (process.platform === 'win32') {
-            fantomExecutable = path.join(fanHome, 'bin', 'fan.bat');
-        } else {
-            fantomExecutable = path.join(fanHome, 'bin', 'fan');
-        }
-
-        // Check if the Fantom executable exists
-        if (!fs.existsSync(fantomExecutable)) {
-            reject(`Fantom executable not found at "${fantomExecutable}". Please ensure Fantom is installed correctly and FAN_HOME is set.`);
-            return;
-        }
-
-        // Check if the Fantom script exists
-        if (!fs.existsSync(scriptPath)) {
-            reject(`Fantom script not found at "${scriptPath}". Please ensure the script exists.`);
-            return;
-        }
-
         // On Windows, execute fan.bat via cmd.exe
         if (process.platform === 'win32') {
             execFile('cmd.exe', ['/c', fantomExecutable, scriptPath, ...args], (error, stdout, stderr) => {
@@ -192,32 +174,129 @@ export async function initFantomDocs(): Promise<string> {
     }
 }
 
-function getFanHome(): string {
-    const fanHome = process.env.FAN_HOME;
-    if (!fanHome) {
-        throw new Error('FAN_HOME environment variable is not set. Please set FAN_HOME to your Fantom installation directory.');
+// Find `bin` folder with `.fan` files in workspace
+async function findWorkspaceBinPath(): Promise<string | null> {
+    const workspaceFolders = await connection.workspace.getWorkspaceFolders();
+
+    if (!workspaceFolders) {
+        logMessage('warn', 'No workspace folders available.', '[SEARCH]', connection);
+        return null;
     }
-    return fanHome;
+
+    for (const folder of workspaceFolders) {
+        const folderPath = new URL(folder.uri).pathname; // Convert URI to file path
+        const binFolderPath = path.join(folderPath, 'bin');
+
+        if (fs.existsSync(binFolderPath) && fs.statSync(binFolderPath).isDirectory()) {
+            const files = fs.readdirSync(binFolderPath);
+            const fanFiles = files.filter(file => file.endsWith('.fan'));
+
+            if (fanFiles.length > 0) {
+                logMessage(
+                    'info',
+                    `Found bin folder with .fan files: ${binFolderPath}`,
+                    '[SEARCH]',
+                    connection
+                );
+                return binFolderPath;
+            }
+        }
+    }
+
+    logMessage('warn', 'No bin folders with .fan files found.', '[SEARCH]', connection);
+    return null;
 }
 
-function getFanExecutable(): string {
-    const fanHome = getFanHome();
+async function getFanHome(): Promise<string> {
+    const settings = getSettings();
+
+    // Check custom path
+    if (settings.fantom.homeMode === 'custom') {
+        const customPath = settings.fantom.homeCustom;
+        if (customPath && fs.existsSync(customPath)) {
+            logMessage('info', 'Using custom Fantom docs path.', '[FANTOM]', connection);
+            return customPath;
+        }
+        logMessage('info', 'Custom path not found. Falling back to local.', '[FANTOM]', connection);
+    }
+
+    // Check local path
+    if (settings.fantom.homeMode === 'local' || settings.fantom.homeMode === 'custom') {
+        const workspacePath = await findWorkspaceBinPath();
+        if (workspacePath) {
+            logMessage('info', 'Using local Fantom docs path.', '[FANTOM]', connection);
+            return workspacePath;
+        }
+        logMessage('info', 'Local path not found. Falling back to global.', '[FANTOM]', connection);
+    }
+
+    // Check global path
+    const fanHome = process.env.FAN_HOME;
+    if (fanHome && fs.existsSync(fanHome)) {
+        logMessage('info', 'Using global Fantom docs path.', '[FANTOM]', connection);
+        return fanHome;
+    }
+
+    throw new Error('Fantom docs path not found. Please set "docStore" to "custom", "global", or "local" in settings.');
+}
+
+
+/**
+ * Search workspace folders for a `bin` folder containing `.fan` files.
+ */
+async function findBinWithFanFiles(workspaceFolders: string[]): Promise<string[]> {
+    const results: string[] = [];
+  
+    for (const folderUri of workspaceFolders) {
+      const folderPath = new URL(folderUri).pathname; // Convert URI to file path
+  
+      // Define the `bin` folder path
+      const binFolderPath = path.join(folderPath, 'bin');
+  
+      if (fs.existsSync(binFolderPath) && fs.statSync(binFolderPath).isDirectory()) {
+        const files = fs.readdirSync(binFolderPath);
+  
+        // Check for `.fan` files
+        const fanFiles = files.filter(file => file.endsWith('.fan'));
+        if (fanFiles.length > 0) {
+          results.push(binFolderPath);
+          logMessage(
+            'info',
+            `Found bin folder with fan files: ${binFolderPath}`,
+            '[SEARCH]',
+            connection
+          );
+        }
+      }
+    }
+  
+    if (results.length === 0) {
+      logMessage('warn', 'No bin folders with fan files found in workspace', '[SEARCH]', connection);
+    }
+  
+    return results;
+  }
+
+  async function getFanExecutable(): Promise<string> {
+    const fanHome = await getFanHome();
     return process.platform === 'win32' ? path.join(fanHome, 'bin', 'fan.bat') : path.join(fanHome, 'bin', 'fan');
 }
 
-function getFanDocsPath(): string {
-    const fanHome = getFanHome();
+async function getFanDocsPath(): Promise<string> {
+    const fanHome = await getFanHome();
     return path.resolve(fanHome, 'vscode', 'fantom-docs.json');
 }
-function getFanNavPath(): string {
-    const fanHome = getFanHome();
+
+async function getFanNavPath(): Promise<string> {
+    const fanHome = await getFanHome();
     return path.resolve(fanHome, 'vscode', 'fantom-docs-nav.json');
 }
+
 
 export async function getFantomDocs(): Promise<FantomDocStructure> {
     // console.log("GETTING FANTOM DOCS");
 
-    const docsPath = getFanDocsPath();
+    const docsPath = await getFanDocsPath();
 
     return new Promise((resolve, reject) => {
         fs.readFile(docsPath, 'utf8', (err, data) => {
@@ -240,7 +319,7 @@ export async function getFantomDocs(): Promise<FantomDocStructure> {
 export async function getFantomNav(): Promise<FantomNavStructure> {
     // console.log("GETTING FANTOM NAV");
 
-    const docsPath = getFanNavPath();
+    const docsPath = await getFanNavPath();
 
     return new Promise((resolve, reject) => {
         fs.readFile(docsPath, 'utf8', (err, data) => {

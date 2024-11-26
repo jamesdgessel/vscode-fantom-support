@@ -2,26 +2,10 @@ import { Hover, HoverParams, Connection, TextDocuments } from 'vscode-languagese
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { tokenLegend } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsManager';
+import { getSettings } from '../utils/settingsHandler';
 import { fanDocLookup } from '../utils/fanUtils'; 
+import { logMessage } from '../utils/notify'; // Import logMessage
 
-const debug = false; // Control logging for this file
-
-/**
- * Logs debug messages if debugging is enabled in settings and this file.
- * @param settings - The current settings.
- * @param connection - The language server connection.
- * @param message - The debug message to log.
- */
-const logDebug = (
-    settings: ReturnType<typeof getSettings>,
-    connection: Connection,
-    message: string
-) => {
-    if (settings.debug && debug) {
-        connection.console.log(`[HoverDocs] ${message}`);
-    }
-};
 
 /**
  * Extracts the word under the cursor based on the provided offset.
@@ -140,17 +124,18 @@ export async function provideHoverInfo(
     documents: TextDocuments<TextDocument>,
     connection: Connection
 ): Promise<Hover | null> {
+    const module = '[HOVER]';
     const settings = getSettings();
     const doc = documents.get(params.textDocument.uri);
 
     if (!doc) {
-        logDebug(settings, connection, 'Document not found.');
+        logMessage('warn', 'Document not found.', module, connection);
         return null;
     }
 
     const tokens = getDocumentTokens(doc.uri);
     if (!tokens) {
-        logDebug(settings, connection, 'No tokens found.');
+        logMessage('warn', 'No tokens found.', module, connection);
         return null;
     }
 
@@ -160,11 +145,11 @@ export async function provideHoverInfo(
     const { word: hoveredWord, start: wordStart } = getHoveredWord(text, offset);
 
     if (!hoveredWord) {
-        logDebug(settings, connection, 'No word at hover position.');
+        logMessage('debug', 'No word at hover position.', module, connection);
         return null;
     }
 
-    logDebug(settings, connection, `Hovered word: ${hoveredWord}`);
+    logMessage('debug', `Hovered word: ${hoveredWord}`, module, connection, "start");
 
     // Check if the word starts with a capital letter or is prefixed with '.'
     const isCapitalized = /^[A-Z]/.test(hoveredWord);
@@ -180,7 +165,7 @@ export async function provideHoverInfo(
                 }
             };
         } catch (error) {
-            logDebug(settings, connection, `Fantom lookup failed: ${error}`);
+            logMessage('err', `Fantom lookup failed: ${error}`, module, connection);
             return {
                 contents: {
                     kind: 'markdown',
@@ -216,7 +201,7 @@ export async function provideHoverInfo(
                         }
                     };
                 } catch (error) {
-                    logDebug(settings, connection, `Fantom lookup failed: ${error}`);
+                    logMessage('err', `Fantom lookup failed: ${error}`, module, connection);
                     return {
                         contents: {
                             kind: 'markdown',
@@ -278,6 +263,6 @@ export async function provideHoverInfo(
     }
 
     // If no token matches, return null or default hover
-    logDebug(settings, connection, `No matching token for "${hoveredWord}"`);
+    logMessage('debug', `No matching token for "${hoveredWord}"`, module, connection, "end");
     return null;
 }

@@ -2,25 +2,25 @@ import { Connection, DocumentColorParams, ColorInformation, ColorPresentation, C
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { tokenLegend } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsManager';
+import { getSettings } from '../utils/settingsHandler';
+import { logMessage } from '../utils/notify';
 
 // Retrieves color information based on pre-built tokens and settings
 export function applySyntaxHighlighting(doc: TextDocument, connection: Connection): ColorInformation[] {
+    const module = 'applySyntaxHighlighting';
+    logMessage('debug', `Start highlighting: ${doc.uri.split('/').pop()}`, module, connection);
     const settings = getSettings(); // Retrieve settings for syntax highlighting
+    logMessage('debug', `Settings retrieved`, module, connection);
     const tokens = getDocumentTokens(doc.uri);
-    console.log(tokens);
+    logMessage('debug', `Tokens retrieved`, module, connection);
     if (!tokens) {
-        if (settings.debug) {
-            connection.console.log(`No tokens found for document: ${doc.uri.split('/').pop()}`);
-        }
+        logMessage('info', `No tokens for: ${doc.uri.split('/').pop()}`, module, connection);
         return [];
     }
 
     const colorInfo: ColorInformation[] = [];
 
-    if (settings.debug) {
-        connection.console.log(`Applying syntax highlighting for document: ${doc.uri.split('/').pop()}`);
-    }
+    logMessage('info', `Highlighting: ${doc.uri.split('/').pop()}`, module, connection);
 
     // Loop through tokens and apply highlighting based on token types and settings
     for (let i = 0; i < tokens.data.length; i += 5) {
@@ -33,29 +33,21 @@ export function applySyntaxHighlighting(doc: TextDocument, connection: Connectio
         const startPos = { line, character: startChar };
         const endPos = { line, character: startChar + length };
 
+        logMessage('debug', `Token: ${tokenType} at line ${line}`, module, connection);
+
         // Determine color based on token type and settings
         let color;
-        if (tokenType === 'class' && settings.enableClassHighlighting) {
+        if (tokenType === 'class' && settings.syntaxHighlighting.enableClassHighlighting) {
             color = { red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0 };
-            if (settings.debug) {
-                // connection.console.log(`Class token at line ${line}, char ${startChar}, length ${length}`);
-            }
-        } else if (tokenType === 'method' && settings.enableMethodHighlighting) {
+        } else if (tokenType === 'method' && settings.syntaxHighlighting.enableMethodHighlighting) {
             color = { red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0 };
-            if (settings.debug) {
-                // connection.console.log(`Method token at line ${line}, char ${startChar}, length ${length}`);
-            }
-        } else if (tokenType === 'field' && settings.enableFieldHighlighting) {
+        } else if (tokenType === 'field' && settings.syntaxHighlighting.enableFieldHighlighting) {
             color = { red: 0.8, green: 0.2, blue: 0.5, alpha: 1.0 };
-            if (settings.debug) {
-                // connection.console.log(`Field token at line ${line}, char ${startChar}, length ${length}`);
-            }
         } else {
             color = { red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0 }; // Default color
-            if (settings.debug) {
-                // connection.console.log(`Default token at line ${line}, char ${startChar}, length ${length}`);
-            }
         }
+
+        logMessage('debug', `Color set`, module, connection);
 
         colorInfo.push({
             range: {
@@ -66,9 +58,7 @@ export function applySyntaxHighlighting(doc: TextDocument, connection: Connectio
         });
     }
 
-    if (settings.debug) {
-        connection.console.log(`Completed applying syntax highlighting for document: ${doc.uri.split('/').pop()}`);
-    }
+    logMessage('info', `Completed highlighting: ${doc.uri.split('/').pop()}`, module, connection);
 
     return colorInfo;
 }

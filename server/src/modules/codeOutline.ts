@@ -2,7 +2,8 @@ import { DocumentSymbol, SymbolKind, Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { tokenLegend, tokenTypes } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsManager';
+import { getSettings } from '../utils/settingsHandler';
+import { logMessage } from '../utils/notify';
 
 /**
  * Builds a hierarchical code outline for a given document using semantic tokens.
@@ -14,17 +15,14 @@ import { getSettings } from '../utils/settingsManager';
 export function buildOutline(doc: TextDocument, connection: Connection): DocumentSymbol[] {
     const settings = getSettings();
     const tokens = getDocumentTokens(doc.uri);
-    const debug = false; // Control logging for this file
+    const module = '[OUTLINE]';
+
+    logMessage('info', 'Building outline', module, connection, "start")
+
 
     if (!tokens) {
-        if (settings.debug && debug) {
-            connection.console.log(`[OUTLINE] No tokens: ${doc.uri.split('/').pop()}`);
-        }
+        logMessage('warn', `No tokens: ${doc.uri.split('/').pop()}`, module, connection);
         return [];
-    }
-
-    if (settings.debug && debug) {
-        connection.console.log(`[OUTLINE] Start: ${doc.uri.split('/').pop()}`);
     }
 
     const symbols: DocumentSymbol[] = [];
@@ -38,9 +36,7 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
 
         const tokenType = tokenLegend.tokenTypes[tokenIndex];
         if (!tokenType) {
-            if (settings.debug && debug) {
-                connection.console.log(`[OUTLINE] Unknown token: ${tokenIndex}`);
-            }
+            logMessage('warn', `Unknown token: ${tokenIndex}`, module, connection);
             continue;
         }
 
@@ -71,9 +67,7 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
         }).trim();
 
         if (!name) {
-            if (settings.debug && debug) {
-                connection.console.log(`[OUTLINE] No name at Line: ${line}, Char: ${startChar}`);
-            }
+            logMessage('warn', `No name at Line: ${line}, Char: ${startChar}`, module, connection);
             continue;
         }
 
@@ -89,9 +83,7 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
                 kind = SymbolKind.Field;
                 break;
             default:
-                if (settings.debug) {
-                    connection.console.log(`[OUTLINE] Unknown token type: ${tokenType}`);
-                }
+                logMessage('warn', `Unknown token type: ${tokenType}`, module, connection);
                 break;
         }
 
@@ -116,31 +108,22 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
         if (kind === SymbolKind.Class) {
             symbols.push(symbol);
             currentClass = symbol;
-            if (settings.debug && debug) {
-                connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)}`);
-            }
+            logMessage('debug', `Added: ${name}`, module, connection, "loop");
         } else if (kind === SymbolKind.Method || kind === SymbolKind.Field) {
             if (currentClass) {
                 if (currentClass.children) {
                     currentClass.children.push(symbol);
                 }
                 currentClass.range.end = symbol.range.end;
-                if (settings.debug && debug) {
-                    connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'}`);
-                }
+                logMessage('debug', `Added: ${name} ${kind === SymbolKind.Method ? 'method' : 'field'}`, module, connection, "loop");
             } else {
                 symbols.push(symbol); // Add to top-level if no parent class
-                if (settings.debug && debug) {
-                    connection.console.log(`[OUTLINE] Added: ${name.padEnd(20)} ${kind === SymbolKind.Method ? 'method' : 'field'} to top-level`);
-                }
+                logMessage('debug', `Added: ${name} ${kind === SymbolKind.Method ? 'method' : 'field'} to top-level`, module, connection, "loop");
             }
         }
     }
 
-    if (settings.debug && debug) {
-        connection.console.log(`[OUTLINE] End: ${doc.uri.split('/').pop()}`);
-        // connection.console.log(`${JSON.stringify(symbols)}`);
-    }
+    logMessage('debug', `Complete: ${doc.uri.split('/').pop()}`, module, connection, "end");
 
     return symbols;
 }

@@ -9,87 +9,84 @@ import {
     SemanticTokensParams,
     HoverParams,
     CompletionParams,
-    DidChangeConfigurationParams,
-    TextDocumentSyncKind
+    DidChangeConfigurationParams
 } from 'vscode-languageserver/node';
+
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Import event handlers
-import { initializeCapabilities } from './events/serverCapabilities';
-import { handleDocumentSave } from './events/documentSave';
-import { handleConfigChange } from './events/configChange';
+import { initializeCapabilities } from './utils/serverCapabilities';
 
 // Import feature modules
-import { buildSemanticTokens, provideDocumentSymbols } from './features/buildTokens';
-import { provideHoverInfo } from './features/hoverDocs';
-import { provideCompletionItems } from './features/autocomplete';
-import { formatDocument } from './features/formatting';
-import { buildOutline } from './features/codeOutline';
-import { lintCode } from './features/codeLinting';
-import { applySyntaxHighlighting } from './features/syntaxHighlighting';
+import { buildSemanticTokens, provideDocumentSymbols } from './modules/buildTokens';
+import { provideHoverInfo } from './modules/hoverDocs';
+import { provideCompletionItems } from './modules/autocomplete';
+import { formatDocument } from './modules/formatting';
+import { buildOutline } from './modules/codeOutline';
+import { lintCode } from './modules/codeLinting';
+import { applySyntaxHighlighting } from './modules/syntaxHighlighting';
 
 // Import utility functions
 import { executeFanCmd, initFantomDocs } from './utils/fanUtils';
-import { initializeSettings, updateSettings, getSettings } from './utils/settingsManager';
+import { updateSettings } from './utils/settingsHandler';
+import { logMessage, notifyUser } from './utils/notify';
 
 // Initialize server connection and documents manager
-const connection = createConnection(ProposedFeatures.all);
+export const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
-
-// Initialize settings
-let settings = initializeSettings(connection);
-let debug = settings.debug;
 
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
-    console.log(' -------------------- Fantom server initialized ---------- ');
+    logMessage('info', 'Fantom server initialized', '[SERVER]', connection);
     initFantomDocs();
-    return initializeCapabilities(connection, settings);
+    return initializeCapabilities(connection, params);
 });
 
 // Handle document open event
 documents.onDidOpen(event => {
-    console.log(' -------------------- Document opened ---------- ');
+    logMessage('info', 'Document opened', '[SERVER]', connection);
 });
 
 // Handle document change event
 documents.onDidChangeContent(change => {
-    console.log(' -------------------- Document content changed ---------- ');
+    logMessage('info', 'Document content changed', '[SERVER]', connection);
     buildSemanticTokens(change.document, connection);
     buildOutline(change.document, connection);
 });
 
 // Handle document save event
 documents.onDidSave(event => {
-    console.log(' -------------------- Document saved ---------- ');
-    handleDocumentSave(event, connection);
+    logMessage('info', 'Document saved', '[SERVER]', connection);
 });
 
 // Handle document close event
 documents.onDidClose(event => {
-    console.log(' -------------------- Document closed ---------- ');
+    logMessage('info', 'Document closed', '[SERVER]', connection);
 });
 
 // Handle configuration change
 connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
-    console.log(' -------------------- Config changed  ---------- ');
-    settings = updateSettings(change, connection);
-    debug = settings.debug;
-    handleConfigChange(change, connection);
-    if (debug) {
-        console.log('Server configuration changed.');
-    }
+    logMessage('info', 'Config changed', '[SERVER]', connection);
+    updateSettings(change, connection);
+    logMessage('info','Server configuration changed.', '[SERVER]', connection);
 });
+
+// Handle workspace folder change
+// connection.workspace.onDidChangeWorkspaceFolders((event) => {
+//     logMessage('info', 'Workspace folders changed', '[SERVER]', connection)
+// });
+
+
 
 // Provide document symbols for syntax highlighting
 connection.onDocumentSymbol((params: DocumentSymbolParams) => {
-    console.log(' -------------------- Document Symbol ---------- ');
+    logMessage('info', 'Document Symbol requested', '[SERVER]', connection);
     return provideDocumentSymbols(params.textDocument.uri, connection, documents);
 });
 
 // Build semantic tokens for enhanced syntax highlighting
 connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
-    console.log(' -------------------- Tokens requested ---------- ');
+    logMessage('info', 'Tokens requested', '[SERVER]', connection);
     const doc = documents.get(params.textDocument.uri);
     if (!doc) {
         return { data: [] };
