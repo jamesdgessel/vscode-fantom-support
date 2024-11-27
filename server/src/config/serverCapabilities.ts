@@ -1,15 +1,15 @@
 import { InitializeResult, ServerCapabilities, TextDocumentSyncKind } from 'vscode-languageserver/node';
 import { Connection, ConnectionError, InitializeParams, WorkspaceFolder } from 'vscode-languageserver';
 import { tokenLegend } from './tokenTypes';
-import { initializeSettings, isFeatureEnabled } from './settingsHandler';
-import { logMessage } from './notify';
+import { isFeatureEnabled } from './settingsHandler';
+import { logMessage } from '../utils/notify';
 
 // Initializes and returns server capabilities
 export function initializeCapabilities(connection: Connection, params: InitializeParams): InitializeResult {
 
     logMessage('info', 'Initializing language server', '[SERVER]', connection);
 
-    const settings = initializeSettings(connection);
+    const settings = params.initializationOptions || {};
 
     const capabilities: ServerCapabilities = {
         // Synchronizes text documents with the server

@@ -2,7 +2,7 @@ import { CompletionItem, CompletionItemKind, CompletionParams, Connection } from
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { TextDocuments } from 'vscode-languageserver/node';
 import { logMessage } from '../utils/notify';
-import { getSettings } from '../utils/settingsHandler';
+import { getSettings } from '../config/settingsHandler';
 
 // Get settings from settings manager
 const settings = getSettings();
@@ -65,7 +65,7 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
     const doc = documents.get(params.textDocument.uri);
 
     if (doc) {
-        logMessage("debug",`Providing Fantom-specific autocomplete suggestions for document: ${doc.uri.split('/').pop()}`, module, connection);
+        logMessage("info",`Providing Fantom-specific autocomplete suggestions for document: ${doc.uri.split('/').pop()}`, module, connection);
         // Additional filtering or customization based on `settings` or `params` can be added here.
         
         return completionItems;

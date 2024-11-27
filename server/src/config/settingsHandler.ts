@@ -1,4 +1,5 @@
 import { Connection, DidChangeConfigurationParams } from 'vscode-languageserver';
+import { logMessage } from '../utils/notify';
 // import { workspace } from 'vscode';
 
 // Default settings for the language server
@@ -8,38 +9,30 @@ export let settings: ServerSettings = {
         debug: 'messages', // off, messages, verbose
     },
     fantom: {
+        enable: true,
+        debug: 'off', // off, messages, verbose
         homeMode: 'global',
         homeCustom: '',
+        docStoreMode: 'fanHome',
+        docStoreCustom: '',
     },
     syntaxHighlighting: {
         enable: true,
         debug: 'off', // off, messages, verbose
         highlightVariableDeclarations: true,
         highlightVariableUsage: true,
-        enableClassHighlighting: true,
-        enableMethodHighlighting: true,
-        enableFieldHighlighting: true,
     },
     codeOutline: {
         enable: true,
         debug: 'off', // off, messages, verbose
-        enableClassOutline: true,
-        enableMethodOutline: true,
-        enableFieldOutline: true,
     },
     formatting: {
         enable: true,
         debug: 'off', // off, messages, verbose
-        requireSemicolons: true,
-        trimWhitespace: true,
-        indentAfterBrace: true,
-        newLineBeforeClosingBrace: true,
-        insertSemicolons: false,
     },
     linting: {
         enable: true,
         debug: 'off', // off, messages, verbose
-        checkVariableNaming: true,
     },
     autocompletion: {
         enable: true,
@@ -49,53 +42,39 @@ export let settings: ServerSettings = {
         enable: true,
         debug: 'off', // off, messages, verbose
     },
-    fantomDocs: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-        docStoreMode: 'fanHome',
-        docStoreCustom: '',
-    },
 };
 
 // ServerSettings type for type safety
-type ServerSettings = {
+export type ServerSettings = {
     general: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
     };
     fantom: {
+        enable: boolean;
+        debug: 'off' | 'messages' | 'verbose';
         homeMode: 'global' | 'local' | 'custom';
         homeCustom: string;
+        docStoreMode: 'fanHome' | 'workspaceRoot' | 'custom';
+        docStoreCustom: string;
     };
     syntaxHighlighting: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
         highlightVariableDeclarations: boolean;
         highlightVariableUsage: boolean;
-        enableClassHighlighting: boolean;
-        enableMethodHighlighting: boolean;
-        enableFieldHighlighting: boolean;
     };
     codeOutline: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
-        enableClassOutline: boolean;
-        enableMethodOutline: boolean;
-        enableFieldOutline: boolean;
     };
     formatting: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
-        requireSemicolons: boolean;
-        trimWhitespace: boolean;
-        indentAfterBrace: boolean;
-        newLineBeforeClosingBrace: boolean;
-        insertSemicolons: boolean;
     };
     linting: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
-        checkVariableNaming: boolean;
     };
     autocompletion: {
         enable: boolean;
@@ -105,24 +84,16 @@ type ServerSettings = {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
     };
-    fantomDocs: {
-        enable: boolean;
-        docStoreMode: 'fanHome' | 'workspaceRoot' | 'custom';
-        docStoreCustom: string;
-        debug: 'off' | 'messages' | 'verbose';
-    };
 };
 
-// Initialize settings (can be called on server startup)
-export async function initializeSettings(connection: Connection): Promise<ServerSettings> {
-    connection.console.log("Initializing default settings...");
-    // const config = await workspace.getConfiguration('fantom-support-server');
-    settings = {
-        ...settings,
-        // ...config
-    };
-    return settings;
-}
+// // Initialize settings (can be called on server startup)
+// export async function initializeSettings(connection: Connection): Promise<ServerSettings> {
+//     logMessage('info', 'Initializing settings', '[SETTINGS]', connection)
+//     settings = {
+//         ...settings,
+//     };
+//     return settings;
+// }
 
 // Get current settings
 export function getSettings(): ServerSettings {

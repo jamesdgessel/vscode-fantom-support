@@ -1,6 +1,6 @@
 {
   "name": "fantom-support",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "jamesdgessel",
   "displayName": "Fantom Language Support",
   "description": "Support for Fantom language in VSCode.",
@@ -16,6 +16,34 @@
   ],
   "main": "./out/client/extension.js",
   "activationEvents": [],
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "compile": "node esbuild.config.mjs",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "watch": "node esbuild.config.mjs --watch"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3",
+    "@types/mocha": "^10.0.9",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.13.0",
+    "npm-run-all": "^4.1.5",
+    "@types/vscode": "^1.90.0"
+  },
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "contributes": {
     "languages": [
       {
@@ -64,34 +92,137 @@
         "command": "fantomDocs.showDetails",
         "title": "Show Slot Details"
       }
-    ]
-  },
-  "scripts": {
-    "build": "node esbuild.config.mjs",
-    "compile": "node esbuild.config.mjs",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
-    "watch": "node esbuild.config.mjs --watch"
-  },
-  "dependencies": {
-  },
-  "devDependencies": {
-    "esbuild": "^0.24.0",
-    "typescript": "^5.6.3",
-    "@types/mocha": "^10.0.9",
-    "@types/node": "20.x",
-    "@typescript-eslint/eslint-plugin": "^8.10.0",
-    "@typescript-eslint/parser": "^8.7.0",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1",
-    "copyfiles": "^2.4.1",
-    "eslint": "^9.13.0",
-    "npm-run-all": "^4.1.5",
-    "@types/vscode": "^1.90.0"
-  },
-  "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Fantom Support Configuration",
+      "properties": {
+        "fantomLanguageServer.general.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the language server."
+        },
+        "fantomLanguageServer.general.debug": {
+          "type": "string",
+          "default": "messages",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set the debug level for the language server."
+        },
+        "fantomLanguageServer.fantom.homeMode": {
+          "type": "string",
+          "default": "global",
+          "enum": ["global", "local", "custom"],
+          "description": "Mode to determine Fantom home directory location."
+        },
+        "fantomLanguageServer.fantom.homeCustom": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path for Fantom home when 'custom' mode is selected."
+        },
+        "fantomLanguageServer.fantom.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Fantom documentation features."
+        },
+        "fantomLanguageServer.fantom.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for Fantom documentation."
+        },
+        "fantomLanguageServer.fantom.docStoreMode": {
+          "type": "string",
+          "default": "fanHome",
+          "enum": ["fanHome", "workspaceRoot", "custom"],
+          "description": "Storage mode for Fantom documentation."
+        },
+        "fantomLanguageServer.fantom.docStoreCustom": {
+          "type": "string",
+          "default": "",
+          "description": "Custom storage path for Fantom documentation."
+        },
+        "fantomLanguageServer.syntaxHighlighting.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable syntax highlighting features."
+        },
+        "fantomLanguageServer.syntaxHighlighting.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for syntax highlighting."
+        },
+        "fantomLanguageServer.syntaxHighlighting.highlightVariableDeclarations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight variable declarations in the code."
+        },
+        "fantomLanguageServer.syntaxHighlighting.highlightVariableUsage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight variable usage in the code."
+        },
+        "fantomLanguageServer.codeOutline.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the code outline feature."
+        },
+        "fantomLanguageServer.codeOutline.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for code outline."
+        },
+        "fantomLanguageServer.formatting.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable formatting features."
+        },
+        "fantomLanguageServer.formatting.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for formatting."
+        },
+        "fantomLanguageServer.linting.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable linting features."
+        },
+        "fantomLanguageServer.linting.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for linting."
+        },
+        "fantomLanguageServer.linting.checkVariableNaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check variable naming conventions during linting."
+        },
+        "fantomLanguageServer.autocompletion.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable autocompletion features."
+        },
+        "fantomLanguageServer.autocompletion.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for autocompletion."
+        },
+        "fantomLanguageServer.hoverDocs.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable hover documentation."
+        },
+        "fantomLanguageServer.hoverDocs.debug": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Set debug level for hover documentation."
+        }
+      }
+    }
+  }
 }

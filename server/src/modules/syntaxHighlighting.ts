@@ -1,8 +1,8 @@
 import { Connection, DocumentColorParams, ColorInformation, ColorPresentation, ColorPresentationParams } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
-import { tokenLegend } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsHandler';
+import { tokenLegend } from '../config/tokenTypes';
+import { getSettings } from '../config/settingsHandler';
 import { logMessage } from '../utils/notify';
 
 // Retrieves color information based on pre-built tokens and settings
@@ -36,16 +36,8 @@ export function applySyntaxHighlighting(doc: TextDocument, connection: Connectio
         logMessage('debug', `Token: ${tokenType} at line ${line}`, module, connection);
 
         // Determine color based on token type and settings
-        let color;
-        if (tokenType === 'class' && settings.syntaxHighlighting.enableClassHighlighting) {
-            color = { red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0 };
-        } else if (tokenType === 'method' && settings.syntaxHighlighting.enableMethodHighlighting) {
-            color = { red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0 };
-        } else if (tokenType === 'field' && settings.syntaxHighlighting.enableFieldHighlighting) {
-            color = { red: 0.8, green: 0.2, blue: 0.5, alpha: 1.0 };
-        } else {
-            color = { red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0 }; // Default color
-        }
+        let color = { red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0 };
+ 
 
         logMessage('debug', `Color set`, module, connection);
 

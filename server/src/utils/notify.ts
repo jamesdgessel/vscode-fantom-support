@@ -1,5 +1,5 @@
 import { Connection } from 'vscode-languageserver';
-import { settings } from './settingsHandler';
+import { settings } from '../config/settingsHandler';
 
 
 // Log messages based on the debug level

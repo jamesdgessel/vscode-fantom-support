@@ -1,9 +1,9 @@
 import { Hover, HoverParams, Connection, TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
-import { tokenLegend } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsHandler';
-import { fanDocLookup } from '../utils/fanUtils'; 
+import { tokenLegend } from '../config/tokenTypes';
+import { getSettings } from '../config/settingsHandler';
+import { Fantom } from './fanUtils'; 
 import { logMessage } from '../utils/notify'; // Import logMessage
 
 
@@ -120,6 +120,7 @@ const generateMarkdownLinks = (lines: number[], fileUri: string): string => {
  * @returns A Hover object containing the markdown information or null.
  */
 export async function provideHoverInfo(
+    fantom: Fantom,
     params: HoverParams,
     documents: TextDocuments<TextDocument>,
     connection: Connection
@@ -157,7 +158,7 @@ export async function provideHoverInfo(
 
     if (isCapitalized || isPrefixedWithDot) {
         try {
-            const fantomResult = await fanDocLookup(hoveredWord);
+            const fantomResult = await fantom.fanDocLookup(hoveredWord);
             return {
                 contents: {
                     kind: 'markdown',
@@ -193,7 +194,7 @@ export async function provideHoverInfo(
 
             if (isFunctionEntity) {
                 try {
-                    const fantomResult = await fanDocLookup(hoveredWord);
+                    const fantomResult = await fantom.fanDocLookup(hoveredWord);
                     return {
                         contents: {
                             kind: 'markdown',

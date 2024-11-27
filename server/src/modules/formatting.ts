@@ -1,6 +1,6 @@
 import { TextEdit, TextDocument } from 'vscode-languageserver-textdocument';
 import { DocumentFormattingParams } from 'vscode-languageserver';
-import { getSettings } from '../utils/settingsHandler';
+import { getSettings } from '../config/settingsHandler';
 import { logMessage } from '../utils/notify';
 import { connection } from '../server';
 

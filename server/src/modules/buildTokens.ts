@@ -1,7 +1,7 @@
 import { SemanticTokens, Connection, DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { tokenLegend, fantomTokenRegex, tokenTypes } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsHandler';
+import { tokenLegend, fantomTokenRegex, tokenTypes } from '../config/tokenTypes';
+import { getSettings } from '../config/settingsHandler';
 import { buildOutline } from './codeOutline';
 import { TextDocuments } from 'vscode-languageserver';
 import { logMessage } from '../utils/notify';
@@ -11,7 +11,7 @@ const documentTokens = new Map<string, SemanticTokens>();
 
 // Main function to build and store tokens
 export function buildSemanticTokens(doc: TextDocument, connection: Connection): SemanticTokens {
-    const module = '[SEM TOK]';
+    const module = '[TOKENS]';
     const settings = getSettings();
     const text = doc.getText();
     const tokensBuilder = new InlineSemanticTokensBuilder();
@@ -88,7 +88,7 @@ export function buildSemanticTokens(doc: TextDocument, connection: Connection): 
         return { data: [] };
     }
 
-    logMessage('info', `Tokens built for ${doc.uri.split('/').pop()}`, module, connection);
+    logMessage('debug', `Tokens built for ${doc.uri.split('/').pop()}`, module, connection);
     // connection.console.log(`[DEBUG] SEM TOK: ${JSON.stringify(tokens)}`);
 
     documentTokens.set(doc.uri, tokens);
@@ -120,7 +120,7 @@ class InlineSemanticTokensBuilder {
 
 // Provide document symbols in the required format for onDocumentSymbol
 export function provideDocumentSymbols(uri: string, connection: Connection, documents: TextDocuments<TextDocument>): DocumentSymbol[] | undefined {
-    const module = '[SYMB PROV]';
+    const module = '[SYMBOLS]';
     const settings = getSettings();
     const doc = documents.get(uri);
 
@@ -138,7 +138,7 @@ export function provideDocumentSymbols(uri: string, connection: Connection, docu
         return undefined;
     }
 
-    logMessage('info', `[Generated symbols for ${uri.split('/').pop()}`, module, connection, "end");
+    logMessage('debug', `[Generated symbols for ${uri.split('/').pop()}`, module, connection, "end");
 
     return symbols;
 }

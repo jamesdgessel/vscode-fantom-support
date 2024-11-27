@@ -1,8 +1,8 @@
 import { DocumentSymbol, SymbolKind, Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
-import { tokenLegend, tokenTypes } from '../utils/tokenTypes';
-import { getSettings } from '../utils/settingsHandler';
+import { tokenLegend, tokenTypes } from '../config/tokenTypes';
+import { getSettings } from '../config/settingsHandler';
 import { logMessage } from '../utils/notify';
 
 /**
@@ -17,7 +17,7 @@ export function buildOutline(doc: TextDocument, connection: Connection): Documen
     const tokens = getDocumentTokens(doc.uri);
     const module = '[OUTLINE]';
 
-    logMessage('info', 'Building outline', module, connection, "start")
+    logMessage('debug', 'Building outline', module, connection, "start")
 
 
     if (!tokens) {

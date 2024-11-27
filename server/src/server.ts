@@ -15,7 +15,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Import event handlers
-import { initializeCapabilities } from './utils/serverCapabilities';
+import { initializeCapabilities } from './config/serverCapabilities';
 
 // Import feature modules
 import { buildSemanticTokens, provideDocumentSymbols } from './modules/buildTokens';
@@ -27,18 +27,27 @@ import { lintCode } from './modules/codeLinting';
 import { applySyntaxHighlighting } from './modules/syntaxHighlighting';
 
 // Import utility functions
-import { executeFanCmd, initFantomDocs } from './utils/fanUtils';
-import { updateSettings } from './utils/settingsHandler';
 import { logMessage, notifyUser } from './utils/notify';
+import { Fantom } from './modules/fanUtils';
 
 // Initialize server connection and documents manager
 export const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
+export let settings: any = {};
+export let fantom: Fantom;
+
+// Global unhandled promise rejection handler
+// process.on('unhandledRejection', (reason, promise) => {
+//     logMessage('err', `Unhandled Promise Rejection: ${reason}`, '[SERVER]', connection);
+// });
+
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     logMessage('info', 'Fantom server initialized', '[SERVER]', connection);
-    initFantomDocs();
+    settings = params.initializationOptions || {};
+    fantom = new Fantom(settings);
+    fantom.init();
     return initializeCapabilities(connection, params);
 });
 
@@ -66,8 +75,6 @@ documents.onDidClose(event => {
 
 // Handle configuration change
 connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
-    logMessage('info', 'Config changed', '[SERVER]', connection);
-    updateSettings(change, connection);
     logMessage('info','Server configuration changed.', '[SERVER]', connection);
 });
 
@@ -75,8 +82,6 @@ connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
 // connection.workspace.onDidChangeWorkspaceFolders((event) => {
 //     logMessage('info', 'Workspace folders changed', '[SERVER]', connection)
 // });
-
-
 
 // Provide document symbols for syntax highlighting
 connection.onDocumentSymbol((params: DocumentSymbolParams) => {
@@ -96,7 +101,7 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams) => {
 
 // Provide hover information for symbols
 connection.onHover((params: HoverParams) => {
-    return provideHoverInfo(params, documents, connection);
+    return provideHoverInfo(fantom, params, documents, connection);
 });
 
 // Provide autocomplete suggestions

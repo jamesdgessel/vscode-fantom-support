@@ -1,6 +1,6 @@
 import { DocumentSymbolParams, Connection, TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getSettings } from '../utils/settingsHandler';
+import { getSettings } from '../config/settingsHandler';
 import { SemanticTokensParams } from 'vscode-languageserver/node';
 import { logMessage } from '../utils/notify';
 
