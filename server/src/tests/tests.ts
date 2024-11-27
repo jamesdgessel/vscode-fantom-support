@@ -1,4 +1,4 @@
-import { getFantomDocs, getFantomNav, initFantomDocs } from '../modules/fanUtils';
+import { getFantomDocs, getFantomNav, initFantomDocs } from '../utils/fanUtils';
 
 async function testBuildFantomDocs() {
     try {

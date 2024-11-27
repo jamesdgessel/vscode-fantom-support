@@ -58,6 +58,7 @@ async function copyFanFolder() {
   copyRecursive(srcDir, destDir);
 }
 
+
 async function buildAll() {
   const contexts = [];
 

@@ -70,7 +70,7 @@
         {
           "id": "fantomDocs",
           "title": "Fantom Docs",
-          "icon": "./resources/icons/fantom-icon.svg"
+          "icon": "./resources/icons/fantom.svg"
         }
       ]
     },
@@ -108,21 +108,16 @@
           "enum": ["off", "messages", "verbose"],
           "description": "Set the debug level for the language server."
         },
-        "fantomLanguageServer.fantom.homeMode": {
+        "fantomLanguageServer.fantom.fanHomeMode": {
           "type": "string",
           "default": "global",
           "enum": ["global", "local", "custom"],
           "description": "Mode to determine Fantom home directory location."
         },
-        "fantomLanguageServer.fantom.homeCustom": {
+        "fantomLanguageServer.fantom.fanHomeOverride": {
           "type": "string",
           "default": "",
           "description": "Custom path for Fantom home when 'custom' mode is selected."
-        },
-        "fantomLanguageServer.fantom.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Fantom documentation features."
         },
         "fantomLanguageServer.fantom.debug": {
           "type": "string",
@@ -130,15 +125,9 @@
           "enum": ["off", "messages", "verbose"],
           "description": "Set debug level for Fantom documentation."
         },
-        "fantomLanguageServer.fantom.docStoreMode": {
+        "fantomLanguageServer.fantom.fantomDocsPath": {
           "type": "string",
-          "default": "fanHome",
-          "enum": ["fanHome", "workspaceRoot", "custom"],
-          "description": "Storage mode for Fantom documentation."
-        },
-        "fantomLanguageServer.fantom.docStoreCustom": {
-          "type": "string",
-          "default": "",
+          "default": "docs",
           "description": "Custom storage path for Fantom documentation."
         },
         "fantomLanguageServer.syntaxHighlighting.enable": {

@@ -95,6 +95,9 @@ class DocBuilder
         try {
             docs := docBuilder() 
 
+            //build dir if it doesn't exist
+
+
             //build file 
             file := File(outPath.toUri)
             json := util::JsonOutStream(file.out)
@@ -145,47 +148,51 @@ class DocBuilder
         return tree
     }
 
-    static Void buildNavTree(Str outPath)
-    {
-        if (debug()) echo("building nav tree")
+    // static Void buildNavTree(Str outPath)
+    // {
+    //     if (debug()) echo("building nav tree")
         
-        //parse json
-        file := File(outPath.toUri)
-        instream := util::JsonInStream(file.in)
-        json := instream.readJson
+    //     //parse json
+    //     file := File(outPath.toUri)
+    //     instream := util::JsonInStream(file.in)
+    //     json := instream.readJson
 
-        navTree := (json as List).mapNotNull |p| 
-        {
-            if (p == null) return null
-            return reduceToNavTree(p as [Str:Obj?] )
-        }
+    //     navTree := (json as List).mapNotNull |p| 
+    //     {
+    //         if (p == null) return null
+    //         return reduceToNavTree(p as [Str:Obj?] )
+    //     }
 
-        outPath = outPath.replace(".json", "-nav.json")
-        outFile := File(outPath.toUri)
-        jsonOut := util::JsonOutStream(outFile.out)
-        jsonOut.prettyPrint = true
-        jsonOut.writeJson(navTree as Obj?[])
-        jsonOut.close
+    //     outPath = outPath.replace(".json", "-nav.json")
+    //     outFile := File(outPath.toUri)
+    //     jsonOut := util::JsonOutStream(outFile.out)
+    //     jsonOut.prettyPrint = true
+    //     jsonOut.writeJson(navTree as Obj?[])
+    //     jsonOut.close
 
-    }
+    // }
 
     static Void main(Str[] args) 
     { 
-
-        Str outPath := Env.cur.homeDir.toStr + "vscode/fantom-docs.json"
-        if (args.size > 0) 
-        {
-            if (debug()) echo("no args given, proceeding with default output path")
-            outPath = args[0]
+        if (args.size < 1) {
+            echo("Usage: buildDocs <outPath>")
+            return
         }
+        Str outPath := args[0]
+
+        if (!outPath.endsWith(".json")) {
+            outPath = (outPath+"/fantom-docs.json").replace("\\","/")
+        } 
+        echo(outPath)
+        return 
 
         fut := buildDocsAsync(outPath).get
 
-        buildNavTree(outPath) 
+        // buildNavTree(outPath) 
 
         if (debug()) echo("done")
         
-        Str outStr := "{docs:"+outPath+", nav:"+outPath.replace(".json", "-nav.json")+"}"
+        Str outStr := outPath
         echo(outStr)
     }
 }

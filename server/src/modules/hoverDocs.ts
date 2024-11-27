@@ -3,7 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getDocumentTokens } from './buildTokens';
 import { tokenLegend } from '../config/tokenTypes';
 import { getSettings } from '../config/settingsHandler';
-import { Fantom } from './fanUtils'; 
+import { FantomDocs } from '../modules/fantomDocs'; 
 import { logMessage } from '../utils/notify'; // Import logMessage
 
 
@@ -120,7 +120,7 @@ const generateMarkdownLinks = (lines: number[], fileUri: string): string => {
  * @returns A Hover object containing the markdown information or null.
  */
 export async function provideHoverInfo(
-    fantom: Fantom,
+    fantom: FantomDocs,
     params: HoverParams,
     documents: TextDocuments<TextDocument>,
     connection: Connection

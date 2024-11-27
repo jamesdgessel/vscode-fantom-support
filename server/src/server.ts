@@ -28,14 +28,14 @@ import { applySyntaxHighlighting } from './modules/syntaxHighlighting';
 
 // Import utility functions
 import { logMessage, notifyUser } from './utils/notify';
-import { Fantom } from './modules/fanUtils';
+import { FantomDocs } from './modules/fantomDocs';
 
 // Initialize server connection and documents manager
 export const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 export let settings: any = {};
-export let fantom: Fantom;
+export let fantom: FantomDocs;
 
 // Global unhandled promise rejection handler
 // process.on('unhandledRejection', (reason, promise) => {
@@ -46,8 +46,13 @@ export let fantom: Fantom;
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     logMessage('info', 'Fantom server initialized', '[SERVER]', connection);
     settings = params.initializationOptions || {};
-    fantom = new Fantom(settings);
-    fantom.init();
+
+    FantomDocs.create(settings).then((createdFantom) => {
+        fantom = createdFantom;
+    }).catch((error) => {
+        logMessage('err', `Failed to initialize FanEnv: ${error}`, '[SERVER]', connection);
+    });
+    
     return initializeCapabilities(connection, params);
 });
 

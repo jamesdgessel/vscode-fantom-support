@@ -5,6 +5,7 @@ out/
 # Ignore compiled JavaScript and map files
 *.js
 *.js.map
+*.vsix
 
 # Logs
 /*.log
@@ -18,4 +19,3 @@ out/
 # Dependency lock file (optional)
 package-lock.json
 
-./*.vsix

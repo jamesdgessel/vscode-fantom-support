@@ -1,7 +1,10 @@
-import { Range, Position } from 'vscode-languageserver';
+import { Range, Position, Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { exec, execFile } from 'child_process';
 import * as path from "path";
+import { logMessage } from './notify';
+import * as fs from 'fs';
+import { WorkspaceFolder } from 'vscode-languageserver';
 
 // Regular expressions to match string literals
 export const stringPatterns: RegExp[] = [
@@ -112,3 +115,36 @@ export function getCallerFunctionName(level: number = 1): string | undefined {
 
     return undefined;
 }
+
+/**
+     * Utility method to read and parse a JSON file.
+     */
+export async function readJsonFile(filePath: string): Promise<object> {
+    logMessage('info', `Reading JSON file: ${filePath}`, '[FANTOM]');
+    if (!fs.existsSync(filePath)) {
+        const errorMessage = `File not found: ${filePath}`;
+        logMessage('err', errorMessage, '[FANTOM]');
+        throw new Error(errorMessage);
+    }
+    try {
+        const data = fs.readFileSync(filePath, 'utf8');
+        const jsonData = JSON.parse(data);
+        logMessage('info', `Successfully read and parsed JSON file: ${filePath}`, '[FANTOM]');
+        return jsonData;
+    } catch (error) {
+        const errorMessage = `Error reading or parsing JSON file: ${filePath}. Error: ${(error as Error).message}`;
+        logMessage('err', errorMessage, '[FANTOM]');
+        throw new Error(errorMessage);
+    }
+}
+
+export async function fetchWorkspaceFolders(connection: Connection): Promise<string[]> {
+    const folders: WorkspaceFolder[] | null = await connection.workspace.getWorkspaceFolders();
+  
+    if (folders && folders.length > 0) {
+      // Return an array of folder paths
+      return folders.map((folder) => decodeURIComponent(folder.uri));
+    }
+  
+    return [];
+  }
