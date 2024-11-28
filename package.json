@@ -108,6 +108,11 @@
           "enum": ["off", "messages", "verbose"],
           "description": "Set the debug level for the language server."
         },
+        "fantomLanguageServer.fantomDocs.favPods": {
+          "type": "string[]",
+          "default": ["sys","domkit"],
+          "description": "Pre load your most used pods."
+        },
         "fantomLanguageServer.fantom.fanHomeMode": {
           "type": "string",
           "default": "global",
@@ -164,7 +169,7 @@
         },
         "fantomLanguageServer.formatting.enable": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable formatting features."
         },
         "fantomLanguageServer.formatting.debug": {
@@ -175,7 +180,7 @@
         },
         "fantomLanguageServer.linting.enable": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable linting features."
         },
         "fantomLanguageServer.linting.debug": {
@@ -191,7 +196,7 @@
         },
         "fantomLanguageServer.autocompletion.enable": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable autocompletion features."
         },
         "fantomLanguageServer.autocompletion.debug": {

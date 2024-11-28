@@ -11,6 +11,7 @@ export let settings: ServerSettings = {
     fantom: {
         enable: true,
         debug: 'off', // off, messages, verbose
+        favPods : ['sys','domkit'],
         homeMode: 'global',
         homeCustom: '',
         docStoreMode: 'fanHome',
@@ -53,6 +54,7 @@ export type ServerSettings = {
     fantom: {
         enable: boolean;
         debug: 'off' | 'messages' | 'verbose';
+        favPods: string[];
         homeMode: 'global' | 'local' | 'custom';
         homeCustom: string;
         docStoreMode: 'fanHome' | 'workspaceRoot' | 'custom';

@@ -127,7 +127,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
         this.outputChannel = outputChannel;
 
         // Load pods data from static JSON file
-        const jsonFilePath = path.join(process.env.FAN_HOME || '', 'vscode', 'fantom-docs-nav.json');
+        const jsonFilePath = path.join(this.context.extensionPath, 'out/docs', 'fantom-docs-nav.json');
         this.logDebug(`Fan Home: ${process.env.FAN_HOME || ''}`);
         this.logDebug(`Reading JSON file from: ${jsonFilePath}`);
         if (fs.existsSync(jsonFilePath)) {
@@ -144,7 +144,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
     // Helper function for debug logging
     private logDebug(message: string) {
-        if (debug) {
+        if (true) {
             this.outputChannel.appendLine(message);
         }
     }
@@ -303,7 +303,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
         this.logDebug(` --- Searching for "${qname}" --- `);
 
         // Load slot details from JSON file
-        const jsonFilePath = path.join(process.env.FAN_HOME || '', 'vscode', 'fantom-docs.json');
+        const jsonFilePath = path.join(this.context.extensionPath, 'out/docs', 'fantom-docs.json');
         const slotDetailsData = fs.readFileSync(jsonFilePath, 'utf-8');
         const slotDetails = JSON.parse(slotDetailsData);
 

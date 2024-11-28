@@ -2,48 +2,13 @@ import { exec } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { logMessage } from '../utils/notify'; 
-import { FanEnv } from '../utils/fanUtils';
-
-export type FantomDocStructure = 
-{
-    name: string;
-    type: string;
-    classes: {  name: string; 
-                type: string;
-                facets: string[];
-                methods: {  
-                    name: string; 
-                    type: string;
-                    params: {
-                        name: string; 
-                        type: string;
-                    }[];
-                }[];
-                fields: { 
-                    name: string; 
-                    type: string;
-                }[];
-            }[];
-};
-
-// Removed redundant array notation as the type already represents an array
-export type FantomNavStructure = 
-{
-    name: string;
-    type: string;
-    classes: {  name: string; 
-                type: string;
-                methods: { name: string; type: string;}[];
-                fields: { name: string; type: string;}[];
-            }[];
-};
-
-
+import { FanEnv } from '../utils/fanEnv';
+import { FantomDocStructure, FantomNavStructure } from '../utils/fanUtils';
 
 /**
  * Fantom config class to manage the extension configuration.
  */
-export class FantomDocs extends FanEnv {
+export class FantomDocs {
 
     private static instance: FantomDocs; 
     private settings: any;
@@ -55,47 +20,26 @@ export class FantomDocs extends FanEnv {
     public docs?: FantomDocStructure[] = undefined;
     public nav?: FantomNavStructure[] = undefined;
 
-    private docBuilderExec: string;
+    constructor(settings: any) {
 
-    protected constructor(settings: any, fanHome: string, fanExecutable: string) {
+        logMessage('info', 'Caching FantomDocs', '[FANTOM]');
 
-        logMessage('info', 'Initializing FantomDocs', '[FANTOM]');
+        this.settings = settings
 
-        super(fanHome, fanExecutable)
-
-        this.settings = settings;
-        this.fanDocsPath = path.resolve(__dirname, settings.fantom?.fantomDocsPath || '../docs');
-        logMessage('info', `Docs path set to ${this.fanDocsPath}`, '[FANTOM]');
-        logMessage('info', `To reload/build docs from installed pods, use xxx command`, '[HELP]');
-
-        let docPath = path.join(this.fanDocsPath, 'fantom-docs.json');
-        let navPath = path.join(this.fanDocsPath, 'fantom-docs-nav.json');
-
-        this.docBuilderExec = path.resolve(__dirname, "../server/fan/buildDocs.fan")
-        logMessage('debug', `Doc builder executable set to ${this.docBuilderExec}`, '[FANTOM]');
-
-        // Verify if the docPath and navPath files exist and log their status
-        if (fs.existsSync(docPath)) {
-            logMessage('info', `Docs found at ${docPath}`, '[FANTOM]');
-            this.docPath = docPath;
+        if (settings.fantom?.fantomDocsPath !== 'docs') {
+            this.fanDocsPath = path.resolve(__dirname, settings.fantom?.fantomDocsPath);
         } else {
-            logMessage('warn', `Doc file missing at ${docPath}`, '[FANTOM]');
+            this.fanDocsPath = path.resolve(__dirname, '../docs');
         }
 
-        if (fs.existsSync(navPath)) {
-            logMessage('info', `Nav found at ${navPath}`, '[FANTOM]');
-            this.navPath = navPath;
-        } else {
-            logMessage('warn', `Nav file missing at ${navPath}`, '[FANTOM]');
-        }
+        this.docPath = this.fanDocsPath + '/fantom-docs.json';
+        this.navPath = this.fanDocsPath + '/fantom-docs-nav.json';
+
     }
 
     static async create(settings: any): Promise<FantomDocs> {
-        
-        const fanHome = await FanEnv.resolveFanHome(settings.fantom.fanHomeMode);
-        const fanExecutable = await FanEnv.resolveFanExecutable(fanHome);
-        
-        const docs = new FantomDocs(settings, fanHome, fanExecutable);
+                
+        const docs = new FantomDocs(settings);
         await docs.init();
         return docs;
     }
@@ -143,7 +87,6 @@ export class FantomDocs extends FanEnv {
     public async loadDocs(): Promise<void> {
         if (!this.docPath) {
             logMessage('warn', `Docs file missing, cannot load`, '[FANTOM]');
-            await this.buildFantomDocs();
             return;
         }
         const docs = await this.readJsonFile(this.docPath) as FantomDocStructure[];
@@ -169,32 +112,6 @@ export class FantomDocs extends FanEnv {
         }
     }
 
-    public async buildFantomDocs(): Promise<string> {
-
-        if (this.fanExecutable && this.fanHome && this.docBuilderExec) {
-            logMessage('info', `Attempting to build fan docs via FanEnv`, '[FANTOM]');
-
-            try {
-                logMessage('info', `Running cmd "fan ${this.docBuilderExec}"`, '[FANTOM]');
-                const out = await this.runFanFile(this.docBuilderExec, [this.fanDocsPath]);
-                logMessage('info', `fan returned: ${out}`, '[FANTOM]');
-                this.docPath = path.join(this.fanDocsPath, 'fantom-docs.json');
-                this.navPath = path.join(this.fanDocsPath, 'fantom-docs-nav.json');
-
-                await this.loadDocs()
-                // await this.loadNav()
-                
-                logMessage('info', `Success! Output docs to: ${this.fanDocsPath}`, '[FANTOM]');
-                return out; // Return the output here
-            } catch (error) {
-                return Promise.reject("Error building Fantom docs. "+error);
-            }
-        } else {
-            const errorMessage = "FanEnv insufficient, see logs";
-            logMessage('err', 'FanEnv insufficient, see logs', '[FANTOM]');
-            return Promise.reject(errorMessage);
-        }
-    }
 
     /**
      * Executes the Fantom docLookup.fan script.
@@ -268,21 +185,6 @@ ${obj.signature}
         return null;
     }
 
-    // public async executeFanCmd (command: string, args: string[]): Promise<string> {
-
-    //     const fantomExecutable = this.fanExecutable;
-    //     logMessage('info', `Executing Fantom command: ${scriptName}`, '[FANTOM]');
-    
-    //     return new Promise((resolve, reject) => {
-    //         execFile(fantomExecutable, [fantomScriptPath, ...args], (error, stdout, stderr) => {
-    //             if (error) {
-    //                 reject(`Error executing Fantom script: ${stderr || error.message}`);
-    //                 return;
-    //             }
-    //             resolve(stdout.trim());
-    //         });
-    //     });
-    // }
 }
 
 // Handle unhandled promise rejections globally

@@ -148,51 +148,43 @@ class DocBuilder
         return tree
     }
 
-    // static Void buildNavTree(Str outPath)
-    // {
-    //     if (debug()) echo("building nav tree")
+    static Void buildNavTree(Str outPath)
+    {
+        if (debug()) echo("building nav tree")
         
-    //     //parse json
-    //     file := File(outPath.toUri)
-    //     instream := util::JsonInStream(file.in)
-    //     json := instream.readJson
+        //parse json
+        file := File(outPath.toUri)
+        instream := util::JsonInStream(file.in)
+        json := instream.readJson
 
-    //     navTree := (json as List).mapNotNull |p| 
-    //     {
-    //         if (p == null) return null
-    //         return reduceToNavTree(p as [Str:Obj?] )
-    //     }
+        navTree := (json as List).mapNotNull |p| 
+        {
+            if (p == null) return null
+            return reduceToNavTree(p as [Str:Obj?] )
+        }
 
-    //     outPath = outPath.replace(".json", "-nav.json")
-    //     outFile := File(outPath.toUri)
-    //     jsonOut := util::JsonOutStream(outFile.out)
-    //     jsonOut.prettyPrint = true
-    //     jsonOut.writeJson(navTree as Obj?[])
-    //     jsonOut.close
+        outPath = outPath.replace(".json", "-nav.json")
+        outFile := File(outPath.toUri)
+        jsonOut := util::JsonOutStream(outFile.out)
+        jsonOut.prettyPrint = true
+        jsonOut.writeJson(navTree as Obj?[])
+        jsonOut.close
 
-    // }
+    }
 
     static Void main(Str[] args) 
     { 
-        if (args.size < 1) {
-            echo("Usage: buildDocs <outPath>")
-            return
-        }
-        Str outPath := args[0]
 
-        if (!outPath.endsWith(".json")) {
-            outPath = (outPath+"/fantom-docs.json").replace("\\","/")
-        } 
-        echo(outPath)
-        return 
+        File home := Env.cur.homeDir
+        File outDir := home.createDir("docsJson")
+        Str outPath := outDir.toStr+"fantom-docs.json"
 
         fut := buildDocsAsync(outPath).get
 
-        // buildNavTree(outPath) 
+        buildNavTree(outPath) 
 
         if (debug()) echo("done")
         
-        Str outStr := outPath
-        echo(outStr)
+        echo(outDir.toStr)
     }
 }
