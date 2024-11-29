@@ -91,8 +91,39 @@
       {
         "command": "fantomDocs.showDetails",
         "title": "Show Slot Details"
+      },
+      {
+        "command": "fantomDocs.addFav",
+        "title": "Add pod to favorites"
+      },
+      {
+        "command": "fantomDocs.removeFav",
+        "title": "Remove pod from favorites"
+      },
+      {
+        "command": "fantomDocs.refresh",
+        "title": "Refresh documentation"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "fantomDocs.addFav",
+          "when": "view == fantomDocsTree",
+          "group": "navigation"
+        },
+        {
+          "command": "fantomDocs.removeFav",
+          "when": "view == fantomDocsTree",
+          "group": "navigation"
+        },
+        {
+          "command": "fantomDocs.refresh",
+          "when": "view == fantomDocsTree",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "Fantom Support Configuration",
@@ -104,7 +135,7 @@
         },
         "fantomLanguageServer.general.debug": {
           "type": "string",
-          "default": "messages",
+          "default": "verbose",
           "enum": ["off", "messages", "verbose"],
           "description": "Set the debug level for the language server."
         },

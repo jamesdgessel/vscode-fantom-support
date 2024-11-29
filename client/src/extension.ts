@@ -1,3 +1,5 @@
+// src/extension.ts
+
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {
@@ -7,6 +9,7 @@ import {
     TransportKind,
 } from 'vscode-languageclient/node';
 import { FantomDocsProvider, FantomDocsDetailsProvider } from './providers/fantomDocsProvider';
+import { FantomDocItem, FantomDocType } from './providers/fantomDocsProvider';
 
 let client: LanguageClient;
 
@@ -14,29 +17,34 @@ let client: LanguageClient;
 const outputChannel = vscode.window.createOutputChannel('Fantom Language Client');
 
 // Define constants
-const LANGUAGE_SERVER_ID = 'fantomLanguageServer';
+export const LANGUAGE_SERVER_ID = 'fantomLanguageServer';
 const LANGUAGE_SERVER_NAME = 'Fantom Language Server';
 const DOCS_TREE_VIEW_ID = 'fantomDocsTree';
 const DOCS_DETAILS_VIEW_ID = 'fantomDocsDetails';
 
 // Log helper function
+let debug: boolean = false; // Initialize debug flag
+
 function logDebug(message: string) {
-    outputChannel.appendLine(`[DEBUG] ${message}`);
+    if (debug) {
+        outputChannel.appendLine(`[DEBUG] ${message}`);
+    }
 }
 
-// Read configuration
-let settings = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+// Read initial configuration
+const configuration = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
+debug = configuration.get<boolean>('fantomDocs.debug', false);
 
-if (settings) {
-    logDebug('Settings retrieved successfully.');
-    logDebug(`Settings: ${JSON.stringify(settings.fantom, null, 2)}`);
-} else {
-    logDebug('Failed to retrieve settings.');
-}
+logDebug('Settings retrieved successfully.');
+logDebug(`Settings: ${JSON.stringify(configuration.get('fantomDocs'), null, 2)}`);
 
 // Log the final settings being applied
 logDebug('Final settings being applied:');
 
+/**
+ * Activates the Fantom support extension.
+ * @param context The extension context.
+ */
 export async function activate(context: vscode.ExtensionContext) {
     logDebug('Activating Fantom support extension...');
 
@@ -62,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc'),
         },
-        initializationOptions: settings,
+        initializationOptions: configuration.get('fantomDocs'),
     };
 
     logDebug('Client options set.');
@@ -71,46 +79,75 @@ export async function activate(context: vscode.ExtensionContext) {
     client = new LanguageClient(LANGUAGE_SERVER_ID, LANGUAGE_SERVER_NAME, serverOptions, clientOptions);
     logDebug('Language client initialized.');
 
-    // Pass the outputChannel and context to the providers
+    // Start the client
+    client.start();
+    logDebug('Language client started.');
+
+    // Initialize providers
     const fantomDocsProvider = new FantomDocsProvider(outputChannel, context);
     const detailsProvider = new FantomDocsDetailsProvider(context, outputChannel);
 
-    // Register commands, tree view, and webview
-    context.subscriptions.push(
-        vscode.window.createTreeView(DOCS_TREE_VIEW_ID, {
-            treeDataProvider: fantomDocsProvider,
-        }),
-        vscode.window.registerWebviewViewProvider(DOCS_DETAILS_VIEW_ID, detailsProvider),
-        vscode.commands.registerCommand('fantomDocs.showDetails', (item) => {
-            if (!item) {
-                logDebug('No item selected');
-                return;
-            }
-            logDebug(`** Details requested for ${item.qname} **`);
-            detailsProvider.showSlotDetails(
-                item.label || 'Unnamed Item',
-                item.type || 'No type',
-                item.qname || 'No qname'
-            );
-        }),
-        vscode.workspace.onDidChangeConfiguration((event) => {
-            logDebug('Configuration changed.');
-            if (event.affectsConfiguration(LANGUAGE_SERVER_ID)) {
-                logDebug('Configuration changed.');
-                settings = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
-                const updatedDefaultSettings = vscode.workspace.getConfiguration().get(LANGUAGE_SERVER_ID, {});
-                client.sendNotification('workspace/didChangeConfiguration', { settings });
-            }
-        })
-    );
+    // Register Tree View
+    const treeView = vscode.window.createTreeView(DOCS_TREE_VIEW_ID, {
+        treeDataProvider: fantomDocsProvider,
+        showCollapseAll: true,
+    });
+    context.subscriptions.push(treeView);
+
+    // Register Webview View Provider
+    const webviewViewProvider = vscode.window.registerWebviewViewProvider(DOCS_DETAILS_VIEW_ID, detailsProvider);
+    context.subscriptions.push(webviewViewProvider);
+
+    // Register Commands
+    const showDetailsCommand = vscode.commands.registerCommand('fantomDocs.showDetails', (item: FantomDocItem) => {
+        if (!item) {
+            logDebug('No item selected');
+            return;
+        }
+        logDebug(`** Details requested for ${item.qname} **`);
+        detailsProvider.showSlotDetails(
+            item.label || 'Unnamed Item',
+            item.type || 'No type',
+            item.qname || 'No qname'
+        );
+    });
+    context.subscriptions.push(showDetailsCommand);
+
+    const addFavCommand = vscode.commands.registerCommand('fantomDocs.addFav', (item: FantomDocItem) => {
+        fantomDocsProvider.addFavPod(item);
+    });
+    context.subscriptions.push(addFavCommand);
+
+    const removeFavCommand = vscode.commands.registerCommand('fantomDocs.removeFav', (item: FantomDocItem) => {
+        fantomDocsProvider.removeFavPod(item);
+    });
+    context.subscriptions.push(removeFavCommand);
+
+    const refreshCommand = vscode.commands.registerCommand('fantomDocs.refresh', () => {
+        fantomDocsProvider.refresh();
+    });
+    context.subscriptions.push(refreshCommand);
+
+    // Listen for configuration changes
+    const configChangeListener = vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration(`${LANGUAGE_SERVER_ID}.fantomDocs`)) {
+            logDebug('FantomDocs configuration changed.');
+            // Update debug flag
+            debug = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID).get<boolean>('fantomDocs.debug', false);
+            logDebug(`Debug flag updated to: ${debug}`);
+
+            // Refresh the provider
+            fantomDocsProvider.refresh();
+        }
+    });
+    context.subscriptions.push(configChangeListener);
 
     logDebug('Fantom Docs Tree View and Webview provider registered.');
-
-    // Start the client
-    client.start();
-    logDebug('Client started.');
 }
 
+/**
+ * Deactivates the Fantom support extension.
+ */
 export function deactivate(): Thenable<void> | undefined {
     if (!client) {
         return undefined;

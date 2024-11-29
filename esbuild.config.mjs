@@ -58,8 +58,23 @@ async function copyFanFolder() {
   copyRecursive(srcDir, destDir);
 }
 
+function checkDocsFiles() {
+  const docsFiles = [
+    "out/docs/fantom-docs.json",
+    "out/docs/fantom-docs-nav.json"
+  ];
+
+  for (const file of docsFiles) {
+    if (!fs.existsSync(file)) {
+      console.error(`Error: Required file ${file} is missing.`);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      process.exit(1);
+    }
+  }
+}
 
 async function buildAll() {
+
   const contexts = [];
 
   for (const options of buildOptions) {
@@ -75,6 +90,7 @@ async function buildAll() {
       await ctx.dispose();
     }));
     await copyFanFolder();
+    checkDocsFiles()
   }
 }
 
