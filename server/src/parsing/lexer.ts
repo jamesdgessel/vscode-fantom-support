@@ -10,8 +10,8 @@ export interface Token {
 
 enum LexerState {
     Default,
-    InMethod,
     InClass,
+    InMethod,
     InBlock
 }
 
@@ -19,6 +19,7 @@ export class Lexer {
     private state: LexerState = LexerState.Default;
     private tokens: Token[] = [];
     private lines: string[] = [];
+    private braceStack: LexerState[] = [];
 
     constructor(private doc: TextDocument) {
         this.lines = doc.getText().split(/\r?\n/);
@@ -31,57 +32,80 @@ export class Lexer {
     private handleLine(line: string, lineIndex: number) {
         let match;
 
-        switch (this.state) {
-            case LexerState.Default:
-                // Match classes
-                if ((match = fantomTokenRegex.classPattern.exec(line)) !== null) {
-                    const captureIndex = match.index + match[0].indexOf(match[1]);
-                    this.addToken('class', match[1], lineIndex, captureIndex);
-                    this.state = LexerState.InClass;
-                }
-                break;
+        // Reset regex indexes
+        fantomTokenRegex.classPattern.lastIndex = 0;
+        fantomTokenRegex.methodPattern.lastIndex = 0;
+        fantomTokenRegex.fieldPattern.lastIndex = 0;
 
-            case LexerState.InClass:
-                // Match constructor
-                if ((match = /(?:new\s+)(make)/gm.exec(line)) !== null) {
-                    const captureIndex = match.index + match[0].indexOf(match[1]);
-                    this.addToken('constructor', match[1], lineIndex, captureIndex);
-                }
+        // Match classes
+        if ((match = fantomTokenRegex.classPattern.exec(line)) !== null) {
+            const captureIndex = match.index + match[0].indexOf(match[1]);
+            this.addToken('class', match[1], lineIndex, captureIndex);
+            this.state = LexerState.InClass;
+            // Brace will be handled when we encounter '{'
+        }
 
-                // Match methods
-                while ((match = fantomTokenRegex.methodPattern.exec(line)) !== null) {
-                    this.addToken('method', match[1], lineIndex, match.index);
-                    this.state = LexerState.InMethod;
-                }
+        // Match methods
+        if (this.state === LexerState.InClass || this.state === LexerState.InMethod) {
+            while ((match = fantomTokenRegex.methodPattern.exec(line)) !== null) {
+                const captureIndex = match.index + match[0].indexOf(match[1]);
+                this.addToken('method', match[1], lineIndex, captureIndex);
+                this.state = LexerState.InMethod;
+                // Wait for '{' to push to braceStack
+            }
+        }
 
-                // Match fields
-                while ((match = fantomTokenRegex.fieldPattern.exec(line)) !== null) {
-                    this.addToken('field', match[1], lineIndex, match.index);
-                }
-                break;
+        // // Match constructors
+        // if (this.state === LexerState.InClass) {
+        //     while ((match = /(?:new\s+)(make)/gm.exec(line)) !== null) {
+        //     const captureIndex = match.index + match[0].indexOf(match[1]);
+        //     this.addToken('constructor', match[1], lineIndex, captureIndex);
+        //     this.state = LexerState.InMethod; // Treat constructors like methods
+        //     // Wait for '{' to push to braceStack
+        //     }
+        // }
 
-            case LexerState.InMethod:
-                // Check for methods where { starts on the next line
-                if (line.trim().startsWith('{')) {
-                    this.state = LexerState.InBlock;
-                }
-                break;
-
-            case LexerState.InBlock:
-                // Handle block-specific logic if needed
-                break;
+        // Match fields
+        if (this.state === LexerState.InClass) {
+            while ((match = fantomTokenRegex.fieldPattern.exec(line)) !== null) {
+                const captureIndex = match.index + match[0].indexOf(match[1]);
+                this.addToken('field', match[1], lineIndex, captureIndex);
+            }
         }
 
         // Handle braces
-        const openBraces = (line.match(/{/g) || []).length;
-        const closeBraces = (line.match(/}/g) || []).length;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '{') {
+                this.addToken('openBrace', '{', lineIndex, i);
+                // Push the current state to the brace stack
+                this.braceStack.push(this.state);
 
-        for (let i = 0; i < openBraces; i++) {
-            this.addToken('openBrace', '{', lineIndex, line.indexOf('{'));
-        }
+                if (this.state === LexerState.InMethod) {
+                    this.state = LexerState.InBlock;
+                } else if (this.state === LexerState.InClass) {
+                    // No state change needed; we're inside a class
+                }
+            } else if (char === '}') {
+                this.addToken('closeBrace', '}', lineIndex, i);
+                if (this.braceStack.length > 0) {
+                    const lastState = this.braceStack.pop() ?? LexerState.Default;
 
-        for (let i = 0; i < closeBraces; i++) {
-            this.addToken('closeBrace', '}', lineIndex, line.indexOf('}'));
+                    if (this.state === LexerState.InBlock) {
+                        // Exiting a block, restore to method state
+                        this.state = lastState;
+                    } else if (this.state === LexerState.InMethod) {
+                        // Exiting a method, restore to class state
+                        this.state = lastState;
+                    } else if (this.state === LexerState.InClass) {
+                        // Exiting a class, restore to previous state
+                        this.state = lastState;
+                    }
+                } else {
+                    console.warn(`Unmatched closing brace at line ${lineIndex + 1}`);
+                    this.state = LexerState.Default; // Reset state on unmatched brace
+                }
+            }
         }
     }
 

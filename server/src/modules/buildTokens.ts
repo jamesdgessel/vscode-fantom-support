@@ -65,7 +65,7 @@ export async function provideDocumentSymbols(uri: string, connection: Connection
         return undefined;
     }
 
-    logMessage('debug', `Requesting doc symbols for ${uri.split('/').pop()}`, module, connection, "start");
+    // logMessage('debug', `Requesting doc symbols for ${uri.split('/').pop()}`, module, connection, "start");
 
     const symbols = await buildOutline(doc, connection);
 
@@ -74,7 +74,7 @@ export async function provideDocumentSymbols(uri: string, connection: Connection
         return undefined;
     }
 
-    logMessage('debug', `[Generated symbols for ${uri.split('/').pop()}`, module, connection, "end");
+    // logMessage('debug', `[Generated symbols for ${uri.split('/').pop()}`, module, connection, "end");
 
     return symbols;
 }
