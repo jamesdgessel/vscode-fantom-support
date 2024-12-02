@@ -66,7 +66,7 @@ export class FantomDocs {
             return {}; 
         }
 
-        logMessage('info', `Reading JSON file: ${filePath}`, '[FANTOM]');
+        logMessage('debug', `Reading JSON file: ${filePath}`, '[FANTOM]');
         if (!fs.existsSync(filePath)) {
             const errorMessage = `File not found: ${filePath}`;
             logMessage('err', errorMessage, '[FANTOM]');
@@ -118,20 +118,20 @@ export class FantomDocs {
      * @returns A Promise that resolves to the script's output, or rejects with an error.
      */
     public async fanDocLookup(input: string): Promise<string> {
-        logMessage('info', `Looking up Fantom docs for input: "${input}"`, '[FANTOM]');
+        logMessage('debug', `Looking up Fantom docs for input: "${input}"`, '[FANTOM]');
         if (!this.docs) {
             logMessage('warn', `Docs unavailable.`, '[FANTOM]');
             return 'Fantom docs unavailable. Please check the logs for more details.';
         }
 
         try {
-            logMessage('info', 'Fantom docs successfully retrieved.', '[FANTOM]');
+            logMessage('debug', 'Fantom docs successfully retrieved.', '[FANTOM]');
             const result = await this.findInDocs(this.docs, input);
             if (result) {
-                logMessage('info', `Match found for "${input}"`, '[FANTOM]');
+                logMessage('debug', `Match found for "${input}"`, '[FANTOM]');
                 return result;
             } else {
-                logMessage('info', `No match found for "${input}"`, '[FANTOM]');
+                logMessage('debug', `No match found for "${input}"`, '[FANTOM]');
                 return `No match found for "${input}"`;
             }
         } catch (error) {
@@ -154,7 +154,7 @@ ${obj.signature}
 \`\`\`
 `;
                 }
-                logMessage('info', `Found match for "${name}": ${result}`, '[FANTOM]');
+                logMessage('debug', `Found match for "${name}": ${result}`, '[FANTOM]');
                 return result;
             }
 

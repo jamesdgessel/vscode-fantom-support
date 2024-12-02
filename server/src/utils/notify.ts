@@ -1,12 +1,32 @@
 import { Connection } from 'vscode-languageserver';
-import { generalDebugLevel } from '../config/settingsHandler';
+import { generalDebugLevel, getSettingValue } from '../config/settingsHandler';
 
 // Log messages based on the debug level
 export function logMessage(level: 'info' | 'warn' | 'err' | 'debug', message: string, prefix: string = '', connection?: Connection, opts?: string): void {
-    
+        
     let debugLevel = generalDebugLevel();
+
+    if (prefix == '[OUTLINE]') {
+        debugLevel = getSettingValue('codeOutline.debug');
+    }
+    if (prefix == '[SNTX HLGHT]') {
+        debugLevel = getSettingValue('syntaxHighlighting.debug');
+    }
+    if (prefix == '[FORMAT]') {
+        debugLevel = getSettingValue('formatting.debug');
+    }
+    if (prefix == '[LINTING]') {
+        debugLevel = getSettingValue('linting.debug');
+    }
+    if (prefix == '[HOVER]') {
+        debugLevel = getSettingValue('hoverDocs.debug');
+    }
+    if (prefix == '[AUTOCOMPLETE]') {
+        debugLevel = getSettingValue('autocompletion.debug');
+    }
     
     if (debugLevel === 'off') return;
+    debugLevel = debugLevel.trim().toLowerCase();
 
     const padedPrefix = prefix.padEnd(20);
     const paddedLevel = level.padEnd(5);
@@ -27,7 +47,10 @@ export function logMessage(level: 'info' | 'warn' | 'err' | 'debug', message: st
     if (messagePrefix === " " && level === 'debug') messagePrefix = "  - ";
 
     const fullMessage = `[${paddedLevel}] ${padedPrefix} ${messagePrefix}${message}`;
-    if (debugLevel === 'messages' && level !== 'debug') {
+
+    if (debugLevel === 'messages' ) {
+        if (level == 'debug') { return; } 
+        
         console.log(fullMessage);
         if (connection) {
             connection.console.log(fullMessage);

@@ -6,8 +6,9 @@ import { logMessage } from '../utils/notify';
 
 // Lints the document for Fantom-specific issues and returns diagnostics
 export function lintCode(doc: TextDocument, connection: Connection): Diagnostic[] {
+    logMessage('info', 'Linting document for Fantom-specific issues', '[LINTER]', connection);
 
-    logMessage('info', 'Linting document for Fantom-specific issues', '[LINTER]', connection)
+    return [{message: 'This is a placeholder diagnostic', range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, severity: DiagnosticSeverity.Warning}]; 
 
     const settings = getSettings(); // Retrieve linting settings
     const diagnostics: Diagnostic[] = [];
@@ -17,23 +18,21 @@ export function lintCode(doc: TextDocument, connection: Connection): Diagnostic[
     lines.forEach((line, lineIndex) => {
         let match;
 
-        // Check for naming conventions in variables if enabled in settings
-        // if (settings.linting.checkVariableNaming) {
-        //     while ((match = fantomTokenRegex.variablePattern.exec(line)) !== null) {
-        //         const variableName = match[1];
-        //         if (!/^[a-z][a-zA-Z0-9]*$/.test(variableName)) {
-        //             diagnostics.push({
-        //                 severity: DiagnosticSeverity.Warning,
-        //                 range: {
-        //                     start: { line: lineIndex, character: match.index },
-        //                     end: { line: lineIndex, character: match.index + variableName.length }
-        //                 },
-        //                 message: `Variable "${variableName}" does not follow naming conventions.`,
-        //                 source: 'fantom-linter'
-        //             });
-        //         }
-        //     }
-        // }
+        // Example check for variable naming conventions
+        while ((match = fantomTokenRegex.variablePattern.exec(line)) !== null) {
+            const variableName = match[1];
+            if (!/^[a-z][a-zA-Z0-9]*$/.test(variableName)) {
+                diagnostics.push({
+                    severity: DiagnosticSeverity.Warning,
+                    range: {
+                        start: { line: lineIndex, character: match.index },
+                        end: { line: lineIndex, character: match.index + variableName.length }
+                    },
+                    message: `Variable "${variableName}" does not follow naming conventions.`,
+                    source: 'fantom-linter'
+                });
+            }
+        }
     });
 
     // Send diagnostics to the client

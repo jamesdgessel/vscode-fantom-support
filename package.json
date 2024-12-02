@@ -19,25 +19,30 @@
   "scripts": {
     "build": "node esbuild.config.mjs",
     "compile": "node esbuild.config.mjs",
-    "test": "npm run test --workspaces",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "npx mocha --require ts-node/register 'client/test/**/*.ts'",
+    "test:server": "npx mocha --require ts-node/register 'server/test/**/*.ts'",
     "lint": "npm run lint --workspaces",
     "watch": "node esbuild.config.mjs --watch"
   },
-  "dependencies": {
-  },
   "devDependencies": {
-    "esbuild": "^0.24.0",
-    "typescript": "^5.6.3",
-    "@types/mocha": "^10.0.9",
+    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.80.0",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.7.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
+    "chai": "^4.5.0",
     "copyfiles": "^2.4.1",
+    "esbuild": "^0.24.0",
+    "esbuild-register": "^3.6.0",
     "eslint": "^9.13.0",
+    "mocha": "^11.0.1",
     "npm-run-all": "^4.1.5",
-    "@types/vscode": "^1.80.0"
+    "sinon": "^19.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
   },
   "private": true,
   "workspaces": [
@@ -136,18 +141,53 @@
         "fantomLanguageServer.general.debug": {
           "type": "string",
           "default": "verbose",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set the debug level for the language server."
         },
         "fantomLanguageServer.fantomDocs.favPods": {
           "type": "string[]",
-          "default": ["sys","domkit","axon","def","folio","haystack","hxApi","hxFolio","hxHaystack","hxIO","hxUtil","ph","phIoT","xeto","xetoTools","connExt","folio3","hisExt","misc","ruleExt","skyarcd","tools","ui","uiMisc","view","viz"],
+          "default": [
+            "sys",
+            "domkit",
+            "axon",
+            "def",
+            "folio",
+            "haystack",
+            "hxApi",
+            "hxFolio",
+            "hxHaystack",
+            "hxIO",
+            "hxUtil",
+            "ph",
+            "phIoT",
+            "xeto",
+            "xetoTools",
+            "connExt",
+            "folio3",
+            "hisExt",
+            "misc",
+            "ruleExt",
+            "skyarcd",
+            "tools",
+            "ui",
+            "uiMisc",
+            "view",
+            "viz"
+          ],
           "description": "Pre load your most used pods."
         },
         "fantomLanguageServer.fantom.fanHomeMode": {
           "type": "string",
           "default": "global",
-          "enum": ["global", "local", "custom"],
+          "enum": [
+            "global",
+            "local",
+            "custom"
+          ],
           "description": "Mode to determine Fantom home directory location."
         },
         "fantomLanguageServer.fantom.fanHomeOverride": {
@@ -158,7 +198,11 @@
         "fantomLanguageServer.fantom.debug": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for Fantom documentation."
         },
         "fantomLanguageServer.fantom.fantomDocsPath": {
@@ -173,8 +217,12 @@
         },
         "fantomLanguageServer.syntaxHighlighting.debug": {
           "type": "string",
-          "default": "verbose",
-          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for syntax highlighting."
         },
         "fantomLanguageServer.syntaxHighlighting.highlightVariableDeclarations": {
@@ -194,8 +242,12 @@
         },
         "fantomLanguageServer.codeOutline.debug": {
           "type": "string",
-          "default": "verbose",
-          "enum": ["off", "messages", "verbose"],
+          "default": "messages",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for code outline."
         },
         "fantomLanguageServer.formatting.enable": {
@@ -206,7 +258,11 @@
         "fantomLanguageServer.formatting.debug": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for formatting."
         },
         "fantomLanguageServer.linting.enable": {
@@ -217,7 +273,11 @@
         "fantomLanguageServer.linting.debug": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for linting."
         },
         "fantomLanguageServer.linting.checkVariableNaming": {
@@ -233,7 +293,11 @@
         "fantomLanguageServer.autocompletion.debug": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for autocompletion."
         },
         "fantomLanguageServer.hoverDocs.enable": {
@@ -244,7 +308,11 @@
         "fantomLanguageServer.hoverDocs.debug": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "description": "Set debug level for hover documentation."
         }
       }

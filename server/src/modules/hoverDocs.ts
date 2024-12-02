@@ -157,20 +157,30 @@ export async function provideHoverInfo(
     const isPrefixedWithDot = wordStart > 0 && text[wordStart - 1] === '.';
 
     if (isCapitalized || isPrefixedWithDot) {
-        try {
-            const fantomResult = await fantom.fanDocLookup(hoveredWord);
+        if (fantom) {
+            try {
+                const fantomResult = await fantom.fanDocLookup(hoveredWord);
+                return {
+                    contents: {
+                        kind: 'markdown',
+                        value: fantomResult
+                    }
+                };
+            } catch (error) {
+                logMessage('err', `Fantom lookup failed: ${error}`, module, connection);
+                return {
+                    contents: {
+                        kind: 'markdown',
+                        value: `**Error:** Unable to lookup "${hoveredWord}" in Fantom.\n\nDetails: ${error}`
+                    }
+                };
+            }
+        } else {
+            logMessage('err', 'FantomDocs instance is undefined.', module, connection);
             return {
                 contents: {
                     kind: 'markdown',
-                    value: fantomResult
-                }
-            };
-        } catch (error) {
-            logMessage('err', `Fantom lookup failed: ${error}`, module, connection);
-            return {
-                contents: {
-                    kind: 'markdown',
-                    value: `**Error:** Unable to lookup "${hoveredWord}" in Fantom.\n\nDetails: ${error}`
+                    value: `**Error:** FantomDocs instance is undefined. Unable to lookup "${hoveredWord}" in Fantom.`
                 }
             };
         }

@@ -23,6 +23,7 @@ import { provideHoverInfo } from './modules/hoverDocs';
 import { provideCompletionItems } from './modules/autocomplete';
 import { formatDocument } from './modules/formatting';
 import { buildOutline } from './modules/codeOutline';
+import { lintCode } from './modules/codeLinting';
 import { applySyntaxHighlighting } from './modules/syntaxHighlighting';
 
 // Import utility functions
@@ -57,27 +58,31 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 // Handle document open event
 documents.onDidOpen(async event => {
-    logMessage('info', 'Document opened', '[SERVER]', connection);
+    // logMessage('info', 'Document opened', '[SERVER]', connection);
     await applySyntaxHighlighting(event.document, connection);
 });
 
 // Handle document change event
 documents.onDidChangeContent(async change => {
-    logMessage('info', 'Document content changed', '[SERVER]', connection);
+    // logMessage('info', 'Document content changed', '[SERVER]', connection);
     await buildSemanticTokens(change.document, connection);
     await buildOutline(change.document, connection);
     await applySyntaxHighlighting(change.document, connection);
+    
+    // const diagnostics = lintCode(change.document, connection);
+    // connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
+
 });
 
 // Handle document save event
 documents.onDidSave(async event => {
-    logMessage('info', 'Document saved', '[SERVER]', connection);
+    // logMessage('info', 'Document saved', '[SERVER]', connection);
     await applySyntaxHighlighting(event.document, connection);
 });
 
 // Handle document close event
 documents.onDidClose(event => {
-    logMessage('info', 'Document closed', '[SERVER]', connection);
+    // logMessage('info', 'Document closed', '[SERVER]', connection);
 });
 
 // Handle configuration change
