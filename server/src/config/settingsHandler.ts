@@ -1,127 +1,58 @@
-import { Connection, DidChangeConfigurationParams } from 'vscode-languageserver';
 import { logMessage } from '../utils/notify';
-// import { workspace } from 'vscode';
 
-// Default settings for the language server
-export let settings: ServerSettings = {
-    general: {
-        enable: true,
-        debug: 'messages', // off, messages, verbose
-    },
-    fantom: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-        favPods : ['sys','domkit'],
-        homeMode: 'global',
-        homeCustom: '',
-        docStoreMode: 'fanHome',
-        docStoreCustom: '',
-    },
-    syntaxHighlighting: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-        highlightVariableDeclarations: true,
-        highlightVariableUsage: true,
-    },
-    codeOutline: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-    },
-    formatting: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-    },
-    linting: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-    },
-    autocompletion: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-    },
-    hoverDocs: {
-        enable: true,
-        debug: 'off', // off, messages, verbose
-    },
-};
 
-// ServerSettings type for type safety
-export type ServerSettings = {
-    general: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-    fantom: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-        favPods: string[];
-        homeMode: 'global' | 'local' | 'custom';
-        homeCustom: string;
-        docStoreMode: 'fanHome' | 'workspaceRoot' | 'custom';
-        docStoreCustom: string;
-    };
-    syntaxHighlighting: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-        highlightVariableDeclarations: boolean;
-        highlightVariableUsage: boolean;
-    };
-    codeOutline: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-    formatting: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-    linting: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-    autocompletion: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-    hoverDocs: {
-        enable: boolean;
-        debug: 'off' | 'messages' | 'verbose';
-    };
-};
+let settings: { [key: string]: any } = {"general":{"debug":"messages"}};
 
-// // Initialize settings (can be called on server startup)
-// export async function initializeSettings(connection: Connection): Promise<ServerSettings> {
-//     logMessage('info', 'Initializing settings', '[SETTINGS]', connection)
-//     settings = {
-//         ...settings,
-//     };
-//     return settings;
-// }
+// Initialize settings (can be called on server startup)
+export async function initializeSettings(initSettings: any): Promise<{ [key: string]: any }> {
+    logMessage('info', 'Initializing settings', '[SETTINGS]')
+    logMessage('debug', "Settings: " + JSON.stringify(initSettings), '[SETTINGS]');
+    settings = {
+        ...initSettings,
+    };
+    return settings;
+}
 
 // Get current settings
-export function getSettings(): ServerSettings {
+export function getSettings() {
     return settings;
 }
 
 // Update settings based on configuration change
-export function updateSettings(change: DidChangeConfigurationParams, connection: Connection): ServerSettings {
-    const newSettings = change.settings.languageServerExample || {};
+export async function updateSettings(newSettings: any): Promise<{ [key: string]: any }> {
     
     settings = {
         ...settings, // Retain existing settings
         ...newSettings, // Apply new settings
     };
     
-    if (settings.general.debug !== 'off') {
-        connection.console.log("Settings updated: " + JSON.stringify(settings));
-    }
+    logMessage('info', "Settings updated: " + JSON.stringify(settings, null, 2), '[SETTINGS]');
     
     return settings;
 }
 
 // Check if a feature is enabled in the settings
-export function isFeatureEnabled(feature: keyof ServerSettings): boolean {
-    const featureSettings = settings[feature];
-    return typeof featureSettings === 'object' && 'enable' in featureSettings ? featureSettings.enable : false;
+export function isFeatureEnabled(feature: string): boolean {
+    const enabled = getSettingValue(feature + ".enable") === true;
+    logMessage('info', `${enabled ? '✓' : 'x'} ${feature} module`, '[SETTINGS]');
+    return enabled;
 }
+
+export function getSettingValue(key: string): any {
+    const keys = key.split('.');
+    let value = settings;
+    for (const k of keys) {
+        if (value[k] === undefined) {
+            return undefined;
+        }
+        value = value[k];
+    }
+    return value;
+}
+
+export function generalDebugLevel(): any {
+    return getSettingValue('general.debug');
+}
+
 
 

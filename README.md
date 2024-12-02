@@ -1,16 +1,16 @@
 # Fantom Support Extension for Visual Studio Code
 
-Fantom language server for vscode. 
+Fantom support for vscode, built using the Language Server Protocol. 
 
-Here's the thing - I have no idea what I'm doing. This is my first ever typescript (or javascript) project. I built this while trying to learn the Fantom language to help myself out. 
+Here's the thing - I have no idea what I'm doing. This is my first ever typescript (or javascript) project. I built this while trying to learn Fantom, largely just to help myself out. 
 
-So... set your expectations accordingly :D I'll maintain it as long as it helps me (or you) out. 
+So... set your expectations accordingly :D 
 
 ## Features
 
-- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by [mgiannini](https://packagecontrol.io/packages/Fantom) and [amackay](https://github.com/a-mackay/fantom-syntax-highlighting), adding highlights for classes, methods, fields, types, and variables (beta) using semantic tokens.
+- **Syntax Highlighting**: Builds on the existing syntax highlighting provided by [mgiannini](https://packagecontrol.io/packages/Fantom) and [amackay](https://github.com/a-mackay/fantom-syntax-highlighting), adding highlights for classes, methods, fields, types, and (soon, if i can smooth it out) variables.
 - **Outline View**: For visualizing classes, methods, and fields.
-- **Fantom Docs**: Navigable fantom docs (built from pods) in the vscode sidebar. This one is cool.  
+- **Fantom Docs**: Navigable fantom docs (built from pods) in the vscode sidebar. 
 
 ## Features In Development
 - **Auto-Completion**: Intelligent code suggestions tailored to Fantom, improving coding speed and accuracy.
@@ -20,7 +20,12 @@ So... set your expectations accordingly :D I'll maintain it as long as it helps 
 - **Code Formatting**: So you're always up to Brian's standards ;) 
 - **Hover Documentation**: Hover over classes, types, methods, fields to view information. 
 
-## Requirements
+## WIP, Imporvements, & Known Bugs
 
-- Make sure you have FAN_HOME in your path, otherwise docs will not work. 
-- Otherwise... idk try it out and we'll see if it works. 
+- Syntax highlighting needs more thorough testing, I haven't handled all the scenarios yet. 
+- Docs
+    - Connect hover docs & sidebar
+    - Add "go-to" to quickly find docs in sidebar
+    - Add search functionality for sidebar 
+    - Auto-favorite any classes/methods used in current workspace 
+- Lots, lots more to do, but just taking it one step at a time ;) 

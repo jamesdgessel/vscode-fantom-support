@@ -23,18 +23,17 @@ import { provideHoverInfo } from './modules/hoverDocs';
 import { provideCompletionItems } from './modules/autocomplete';
 import { formatDocument } from './modules/formatting';
 import { buildOutline } from './modules/codeOutline';
-import { lintCode } from './modules/codeLinting';
 import { applySyntaxHighlighting } from './modules/syntaxHighlighting';
 
 // Import utility functions
 import { logMessage, notifyUser } from './utils/notify';
 import { FantomDocs } from './modules/fantomDocs';
+import { getSettings, updateSettings } from './config/settingsHandler';
 
 // Initialize server connection and documents manager
 export const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-export let settings: any = {};
 export let fantom: FantomDocs;
 
 // Global unhandled promise rejection handler
@@ -45,9 +44,9 @@ export let fantom: FantomDocs;
 // Initialize capabilities on server startup
 connection.onInitialize((params: InitializeParams): InitializeResult => {
     logMessage('info', 'Fantom server initialized', '[SERVER]', connection);
-    settings = params.initializationOptions || {};
+    updateSettings(params.initializationOptions || {});
 
-    FantomDocs.create(settings).then((createdFantom) => {
+    FantomDocs.create(getSettings()).then((createdFantom) => {
         fantom = createdFantom;
     }).catch((error) => {
         logMessage('err', `Failed to initialize FanEnv: ${error}`, '[SERVER]', connection);
@@ -57,20 +56,23 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 });
 
 // Handle document open event
-documents.onDidOpen(event => {
+documents.onDidOpen(async event => {
     logMessage('info', 'Document opened', '[SERVER]', connection);
+    await applySyntaxHighlighting(event.document, connection);
 });
 
 // Handle document change event
-documents.onDidChangeContent(change => {
+documents.onDidChangeContent(async change => {
     logMessage('info', 'Document content changed', '[SERVER]', connection);
-    buildSemanticTokens(change.document, connection);
-    buildOutline(change.document, connection);
+    await buildSemanticTokens(change.document, connection);
+    await buildOutline(change.document, connection);
+    await applySyntaxHighlighting(change.document, connection);
 });
 
 // Handle document save event
-documents.onDidSave(event => {
+documents.onDidSave(async event => {
     logMessage('info', 'Document saved', '[SERVER]', connection);
+    await applySyntaxHighlighting(event.document, connection);
 });
 
 // Handle document close event
@@ -79,8 +81,9 @@ documents.onDidClose(event => {
 });
 
 // Handle configuration change
-connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
+connection.onDidChangeConfiguration(async (change: DidChangeConfigurationParams) => {
     logMessage('info','Server configuration changed.', '[SERVER]', connection);
+    await updateSettings(change.settings);
 });
 
 // Handle workspace folder change
@@ -90,7 +93,7 @@ connection.onDidChangeConfiguration((change: DidChangeConfigurationParams) => {
 
 // Provide document symbols for syntax highlighting
 connection.onDocumentSymbol((params: DocumentSymbolParams) => {
-    logMessage('info', 'Document Symbol requested', '[SERVER]', connection);
+    logMessage('debug', 'Document Symbol requested', '[SERVER]', connection);
     return provideDocumentSymbols(params.textDocument.uri, connection, documents);
 });
 

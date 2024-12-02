@@ -1,10 +1,11 @@
 import { Connection } from 'vscode-languageserver';
-import { settings } from '../config/settingsHandler';
-
+import { generalDebugLevel } from '../config/settingsHandler';
 
 // Log messages based on the debug level
 export function logMessage(level: 'info' | 'warn' | 'err' | 'debug', message: string, prefix: string = '', connection?: Connection, opts?: string): void {
-    const debugLevel = settings.general.debug;
+    
+    let debugLevel = generalDebugLevel();
+    
     if (debugLevel === 'off') return;
 
     const padedPrefix = prefix.padEnd(20);
@@ -36,16 +37,18 @@ export function logMessage(level: 'info' | 'warn' | 'err' | 'debug', message: st
         if (connection) {
             connection.console.log(fullMessage);
         }
+    } else {
+        console.log("[SETTINGS ERROR] UNKNOWN DEBUG LEVEL: " + debugLevel);
     }
 }
 
 // Notify user with a popup message
-export function notifyUser(connection: Connection, message: string, type: 'info' | 'warn' | 'error' = 'info'): void {
+export async function notifyUser(connection: Connection, message: string, type: 'info' | 'warn' | 'error' = 'info'): Promise<void> {
     if (type === 'info') {
-        connection.window.showInformationMessage(message);
+        await connection.window.showInformationMessage(message);
     } else if (type === 'warn') {
-        connection.window.showWarningMessage(message);
+        await connection.window.showWarningMessage(message);
     } else if (type === 'error') {
-        connection.window.showErrorMessage(message);
+        await connection.window.showErrorMessage(message);
     }
 }

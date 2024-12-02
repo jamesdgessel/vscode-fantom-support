@@ -5,14 +5,16 @@ import { getSettings } from '../config/settingsHandler';
 import { buildOutline } from './codeOutline';
 import { TextDocuments } from 'vscode-languageserver';
 import { logMessage } from '../utils/notify';
+import { SemanticTokensParams } from 'vscode-languageserver/node';
+
 
 // Global storage for tokens to allow other features to access pre-built tokens
 const documentTokens = new Map<string, SemanticTokens>();
 
 // Main function to build and store tokens
-export function buildSemanticTokens(doc: TextDocument, connection: Connection): SemanticTokens {
+export async function buildSemanticTokens(doc: TextDocument, connection: Connection): Promise<SemanticTokens> {
     const module = '[TOKENS]';
-    const settings = getSettings();
+    const settings = await getSettings();
     const text = doc.getText();
     const tokensBuilder = new InlineSemanticTokensBuilder();
     const scopeStack: { type: 'class' | 'method' | 'block'; lineStart: number }[] = [];
@@ -119,9 +121,9 @@ class InlineSemanticTokensBuilder {
 }
 
 // Provide document symbols in the required format for onDocumentSymbol
-export function provideDocumentSymbols(uri: string, connection: Connection, documents: TextDocuments<TextDocument>): DocumentSymbol[] | undefined {
+export async function provideDocumentSymbols(uri: string, connection: Connection, documents: TextDocuments<TextDocument>): Promise<DocumentSymbol[] | undefined> {
     const module = '[SYMBOLS]';
-    const settings = getSettings();
+    const settings = await getSettings();
     const doc = documents.get(uri);
 
     if (!doc) {
@@ -131,7 +133,7 @@ export function provideDocumentSymbols(uri: string, connection: Connection, docu
 
     logMessage('debug', `Requesting doc symbols for ${uri.split('/').pop()}`, module, connection, "start");
 
-    const symbols = buildOutline(doc, connection);
+    const symbols = await buildOutline(doc, connection);
 
     if (!symbols || symbols.length === 0) {
         logMessage('warn', `No symbols generated for ${uri.split('/').pop()}`, module, connection);
@@ -142,4 +144,3 @@ export function provideDocumentSymbols(uri: string, connection: Connection, docu
 
     return symbols;
 }
-

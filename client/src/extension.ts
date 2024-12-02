@@ -70,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc'),
         },
-        initializationOptions: configuration.get('fantomDocs'),
+        initializationOptions: configuration,
     };
 
     logDebug('Client options set.');

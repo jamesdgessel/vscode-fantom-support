@@ -1,6 +1,6 @@
 {
   "name": "fantom-support",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "publisher": "jamesdgessel",
   "displayName": "Fantom Language Support",
   "description": "Support for Fantom language in VSCode.",
@@ -9,7 +9,7 @@
     "url": "https://github.com/jamesdgessel/vscode-fantom-support"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Programming Languages"
@@ -37,7 +37,7 @@
     "copyfiles": "^2.4.1",
     "eslint": "^9.13.0",
     "npm-run-all": "^4.1.5",
-    "@types/vscode": "^1.90.0"
+    "@types/vscode": "^1.80.0"
   },
   "private": true,
   "workspaces": [
@@ -141,7 +141,7 @@
         },
         "fantomLanguageServer.fantomDocs.favPods": {
           "type": "string[]",
-          "default": ["sys","domkit"],
+          "default": ["sys","domkit","axon","def","folio","haystack","hxApi","hxFolio","hxHaystack","hxIO","hxUtil","ph","phIoT","xeto","xetoTools","connExt","folio3","hisExt","misc","ruleExt","skyarcd","tools","ui","uiMisc","view","viz"],
           "description": "Pre load your most used pods."
         },
         "fantomLanguageServer.fantom.fanHomeMode": {
@@ -163,7 +163,7 @@
         },
         "fantomLanguageServer.fantom.fantomDocsPath": {
           "type": "string",
-          "default": "docs",
+          "default": "../docs",
           "description": "Custom storage path for Fantom documentation."
         },
         "fantomLanguageServer.syntaxHighlighting.enable": {
@@ -173,7 +173,7 @@
         },
         "fantomLanguageServer.syntaxHighlighting.debug": {
           "type": "string",
-          "default": "off",
+          "default": "verbose",
           "enum": ["off", "messages", "verbose"],
           "description": "Set debug level for syntax highlighting."
         },
@@ -194,7 +194,7 @@
         },
         "fantomLanguageServer.codeOutline.debug": {
           "type": "string",
-          "default": "off",
+          "default": "verbose",
           "enum": ["off", "messages", "verbose"],
           "description": "Set debug level for code outline."
         },

@@ -126,7 +126,7 @@ export async function provideHoverInfo(
     connection: Connection
 ): Promise<Hover | null> {
     const module = '[HOVER]';
-    const settings = getSettings();
+    const settings = await getSettings();
     const doc = documents.get(params.textDocument.uri);
 
     if (!doc) {

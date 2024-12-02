@@ -12,13 +12,12 @@ import { logMessage } from '../utils/notify';
  * @param connection - The LSP connection for logging.
  * @returns An array of DocumentSymbols representing the code outline.
  */
-export function buildOutline(doc: TextDocument, connection: Connection): DocumentSymbol[] {
-    const settings = getSettings();
-    const tokens = getDocumentTokens(doc.uri);
+export async function buildOutline(doc: TextDocument, connection: Connection): Promise<DocumentSymbol[]> {
+    const settings = await getSettings();
+    const tokens = await getDocumentTokens(doc.uri);
     const module = '[OUTLINE]';
 
     logMessage('debug', 'Building outline', module, connection, "start")
-
 
     if (!tokens) {
         logMessage('warn', `No tokens: ${doc.uri.split('/').pop()}`, module, connection);
