@@ -12,20 +12,39 @@ So... set your expectations accordingly :D
 - **Outline View**: For visualizing classes, methods, and fields.
 - **Fantom Docs**: Navigable fantom docs (built from pods) in the vscode sidebar. 
 
-## Features In Development
-- **Auto-Completion**: Intelligent code suggestions tailored to Fantom, improving coding speed and accuracy.
-- **Code Snippets**: Predefined snippets for common Fantom constructs, reducing repetitive typing.
-- **Dynamic Updates**: Real-time syntax highlighting for variable declarations and usage instances.
-- **Customizable Settings**: Enable or disable syntax highlighting elements directly from the settings menu.
+## Features Planned/WIP
+- **Auto-Completion & Code Snippets**: Intelligent code suggestions tailored to Fantom, improving coding speed and accuracy. Predefined snippets for common Fantom constructs, reducing repetitive typing.
 - **Code Formatting**: So you're always up to Brian's standards ;) 
 - **Hover Documentation**: Hover over classes, types, methods, fields to view information. 
 
-## WIP, Imporvements, & Known Bugs
+## WIP, Improvements Needed, & Known Bugs
 
-- Syntax highlighting needs more thorough testing, I haven't handled all the scenarios yet. 
+- Syntax highlighting 
+    - Needs more thorough testing, I haven't handled all the scenarios yet. 
+    - Some special chars are accidentally included in the captures, like ()
 - Docs
-    - Connect hover docs & sidebar
+    - Need to connect hover docs & sidebar & centralize processing
+    - Slot details are not always filled in properly, displaying {placeholder}
     - Add "go-to" to quickly find docs in sidebar
     - Add search functionality for sidebar 
     - Auto-favorite any classes/methods used in current workspace 
 - Lots, lots more to do, but just taking it one step at a time ;) 
+
+## Screenshots
+
+### Outline View
+![Outline View](resources/screenshots/outline.png)
+
+### Sidebar Docs
+![Sidebar Docs](resources/screenshots/sidebar-docs.png)
+
+![Slot Details](resources/screenshots/slot-details.png)
+
+Includes support for private classes & inherited slots 
+
+![Inherited Slots](resources/screenshots/inherited-slots.png)
+
+![Private Classes](resources/screenshots/private-classes.png)
+
+### Hover Documentation
+![Hover Documentation](resources/screenshots/hover-docs.png)

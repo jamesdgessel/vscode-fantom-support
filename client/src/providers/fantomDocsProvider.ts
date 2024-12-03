@@ -224,7 +224,8 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                 );
             case FantomDocType.Pod:
                 // Children: Classes
-                const classes = this.pods.find((p) => p.name === element.label)?.classes || [];
+                const pod = this.pods.find((p) => p.name === element.label);
+                const classes = pod?.classes || [];
                 return Promise.resolve(
                     classes.map(
                         (cls) =>

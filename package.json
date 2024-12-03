@@ -140,7 +140,7 @@
         },
         "fantomLanguageServer.general.debug": {
           "type": "string",
-          "default": "verbose",
+          "default": "messages",
           "enum": [
             "off",
             "messages",
@@ -197,7 +197,7 @@
         },
         "fantomLanguageServer.fantom.debug": {
           "type": "string",
-          "default": "off",
+          "default": "verbose",
           "enum": [
             "off",
             "messages",
