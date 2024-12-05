@@ -128,6 +128,14 @@ export async function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(refreshCommand);
 
+    const searchCommand = vscode.commands.registerCommand('fantomDocs.search', async () => {
+        const searchQuery = await vscode.window.showInputBox({ prompt: 'Search Fantom Docs' });
+        if (searchQuery) {
+            fantomDocsProvider.search(searchQuery);
+        }
+    });
+    context.subscriptions.push(searchCommand);
+
     // Listen for configuration changes
     const configChangeListener = vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration(`${LANGUAGE_SERVER_ID}.fantomDocs`)) {

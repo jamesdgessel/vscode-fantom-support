@@ -108,6 +108,10 @@
       {
         "command": "fantomDocs.refresh",
         "title": "Refresh documentation"
+      },
+      {
+        "command": "fantomDocs.search",
+        "title": "Search documentation"
       }
     ],
     "menus": {
@@ -124,6 +128,11 @@
         },
         {
           "command": "fantomDocs.refresh",
+          "when": "view == fantomDocsTree",
+          "group": "navigation"
+        },
+        {
+          "command": "fantomDocs.search",
           "when": "view == fantomDocsTree",
           "group": "navigation"
         }

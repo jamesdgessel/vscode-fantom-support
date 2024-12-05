@@ -227,18 +227,27 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                 const pod = this.pods.find((p) => p.name === element.label);
                 const classes = pod?.classes || [];
                 return Promise.resolve(
-                    classes.map(
-                        (cls) =>
-                            new FantomDocItem(
-                                cls.name,
-                                vscode.TreeItemCollapsibleState.Collapsed,
-                                FantomDocType.Class,
-                                cls.qname,
-                                `Children for Class: ${cls.name}`,
-                                cls,
-                                element // Set parent as the current pod element
-                            )
-                    )
+                    classes
+                        .sort((a, b) => {
+                            // Sort by public status (public classes first)
+                            if (a.public !== b.public) {
+                                return a.public ? -1 : 1;
+                            }
+                            // Sort alphabetically by name
+                            return a.name.localeCompare(b.name);
+                        })
+                        .map(
+                            (cls) =>
+                                new FantomDocItem(
+                                    cls.name,
+                                    vscode.TreeItemCollapsibleState.Collapsed,
+                                    FantomDocType.Class,
+                                    cls.qname,
+                                    `Children for Class: ${cls.name}`,
+                                    cls,
+                                    element // Set parent as the current pod element
+                                )
+                        )
                 );
             case FantomDocType.Class:
                 // Children: Fields and Methods
@@ -274,14 +283,24 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                         )
                 );
 
-                // Sort methods to place inherited methods last
-                const sortedMethodItems = methodItems.sort((a, b) => {
+                // Combine fields and methods, then sort by type, name, and inherited status
+                const sortedChildren = [...fieldItems, ...methodItems].sort((a, b) => {
+                    // Sort by type: Field before Method
+                    if (a.type !== b.type) {
+                        return a.type === FantomDocType.Field ? -1 : 1;
+                    }
+                    // Sort alphabetically by name
+                    const nameComparison = a.label.localeCompare(b.label);
+                    if (nameComparison !== 0) {
+                        return nameComparison;
+                    }
+                    // Sort by inherited status (inherited items last)
                     const aInherited = typeof a.description === 'string' && a.description.includes('<-');
                     const bInherited = typeof b.description === 'string' && b.description.includes('<-');
                     return aInherited === bInherited ? 0 : aInherited ? 1 : -1;
                 });
 
-                return Promise.resolve([...fieldItems, ...sortedMethodItems]);
+                return Promise.resolve(sortedChildren);
             case FantomDocType.Method:
                 // No children
                 return Promise.resolve([]);
@@ -289,6 +308,40 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                 return Promise.resolve([]);
         }
     }
+
+    /**
+     * Searches the tree for items matching the given string.
+     * @param query The search string.
+     * @returns A list of matching FantomDocItems.
+     */
+    search(query: string): Thenable<FantomDocItem[]> {
+        const matches: FantomDocItem[] = [];
+        const lowerQuery = query.toLowerCase();
+    
+        const searchInItems = async (items: Thenable<FantomDocItem[]> | FantomDocItem[]) => {
+            const resolvedItems = items instanceof Promise ? await items : items; // Resolve the promise if needed
+    
+            for (const item of resolvedItems) {
+                // Match query
+                if (item.label.toLowerCase().includes(lowerQuery) || item.qname.toLowerCase().includes(lowerQuery)) {
+                    matches.push(item);
+                }
+    
+                // Check children
+                if (item.collapsibleState !== vscode.TreeItemCollapsibleState.None) {
+                    const children = this.getChildren(item); // May return Thenable
+                    await searchInItems(children); // Recursively search children
+                }
+            }
+        };
+    
+        return this.getChildren().then(async (rootItems) => {
+            await searchInItems(rootItems);
+            return matches;
+        });
+    }
+    
+
 
 
     /**
@@ -659,6 +712,8 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
         // this.logDebug(`Generated HTML template:\n${html}`);
         return html;
     }
+
+    
 }
 
 
