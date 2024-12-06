@@ -8,19 +8,31 @@ class DocBuilder
 {
     static Bool debug() {return false}
 
-    static getMods(Type type) 
+    static Str getMods(Slot slot) 
     {
         mods:= "" 
-        if (type.isStatic) mods = mods+" static"
-        if (type.isAbstract) mods = mods+" abstract"
-        if (type.isVirtual) mods = mods+" virtual"
-        if (type.isPublic) mods = mods+" public"
-        if (type.isProtected) mods = mods+" protected"
-        if (type.isInternal) mods = mods+" internal"
-        if (type.isPrivate) mods = mods+" private"
-        if (type.isOverride) mods = mods+" override"
+        if (slot.isStatic) mods = mods+" static"
+        if (slot.isAbstract) mods = mods+" abstract"
+        if (slot.isVirtual) mods = mods+" virtual"
+        if (slot.isPublic) mods = mods+" public"
+        if (slot.isProtected) mods = mods+" protected"
+        if (slot.isInternal) mods = mods+" internal"
+        if (slot.isPrivate) mods = mods+" private"
+        if (slot.isOverride) mods = mods+" override"
         return mods
     } 
+
+    static Str getClassMods(Type type) 
+    {
+        mods:= "" 
+        if (type.isClass) mods = mods+" class"
+        if (type.isPublic) mods = mods+" public"
+        if (type.isAbstract) mods = mods+" abstract"
+        if (type.isMixin) mods = mods+" mixin"
+        if (type.isEnum) mods = mods+" enum"
+        return mods
+    } 
+
 
     static [sys::Str:sys::Obj?]? methodBuilder(Method method) {
         if (method.name.contains("\$")) return null 
@@ -42,7 +54,7 @@ class DocBuilder
                 ]},
                 "doc": method.doc ?: "",
                 "returns": method.returns.toStr,
-                "modifers": mods,
+                "mods": mods,
 
 
             ]
@@ -55,13 +67,15 @@ class DocBuilder
 
     static [sys::Str:sys::Obj?]? fieldBuilder(Field field) {
         // echo("  field ${field.name}")
+        mods:= getMods(field)
         fieldData := 
         [
             "name": field.name,
             "qname": field.qname,
             "signature": field.signature,
             "type": "field",
-            "doc": field.doc ?: ""
+            "doc": field.doc ?: "",
+            "mods": mods,
         ]
         return fieldData
     }
@@ -70,8 +84,8 @@ class DocBuilder
         
         if (type.name.contains("\$")) return null  // skip inner classes
 
-        fields := type.fields.map |field| {fieldBuilder(field)}
-        methods := type.methods.map |method| {methodBuilder(method)}
+        fields := type.fields.mapNotNull |field| {if (!field.qname.startsWith("sys")) return fieldBuilder(field); else return null}
+        methods := type.methods.mapNotNull |method| {if (!method.qname.startsWith("sys")) return methodBuilder(method); else return null}
         classData := 
         [
             "name": type.name,
@@ -79,9 +93,11 @@ class DocBuilder
             "type": "class",
             "doc": type.doc ?: "",
             "facets" : (type.facets.map |fac| {fac.toStr}),
-            "public": type.isPublic,
             "fields": fields,
-            "methods": methods
+            "methods": methods,
+            "mods": getClassMods(type),
+            "parent": type.base!=null ? type.base.toStr : "",
+            "inherits": type.inheritance.map |inh| {inh.toStr},
         ]
         return classData
     }

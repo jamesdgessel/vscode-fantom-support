@@ -17,13 +17,3 @@ Group
       Fields Static 
       Fields Virtual 
       Fields Abstract 
-
-json file 
-
-Fantom: 
-Group 
-  
-  Group | GroupName 
-Pod 
-  Pod | Group |
-      
