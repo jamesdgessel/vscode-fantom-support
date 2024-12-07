@@ -6,26 +6,80 @@ let favPods: string[] = vscode.workspace.getConfiguration('fantomLanguageServer'
 
 export class BaseItem extends vscode.TreeItem {
 
-  public static favIcon = new vscode.ThemeIcon('star-full', new vscode.ThemeColor('charts.yellow'));
+  public icon = 'question';
+  public color = '';
+  public iconPath: vscode.ThemeIcon = new vscode.ThemeIcon(this.icon);
+
+  public qname: string = '';
+  public type: FantomDocType = FantomDocType.Group;
+
+
+  //icons 
+  public static podIcon = 'package';
+  public static methodIcon = 'symbol-method';
+  public static fieldIcon = 'symbol-field';
+  public static classIcon = 'symbol-class';
+  public static enumIcon = 'symbol-enum';
+  public static groupIcon = 'symbol-folder';
+  public static favIcon = 'star-full';
+  public static mixinIcon = 'symbol-object';
+
+  //color keys 
+  public static fadedColor = 'disabledForeground';
+  public static green = 'charts.green';
+  public static blue = 'charts.blue';
+  public static red = 'charts.red';
+  public static pink = 'charts.pink';
+  public static yellow = 'charts.yellow';
+
+  //modifier colors 
+  public static constructorColor = 'charts.pink';
+  public static privateColor = 'charts.pink';
+  public static staticColor = 'charts.green';
+  public static virtualColor = 'charts.blue';
+  public static abstractColor = 'charts.blue';
+  public static mixinColor = 'charts.blue';
+  public static overrideColor = 'charts.blue';
+  public static enumColor = 'charts.green';
+
+  public makeIcon() { 
+    if      (this.isFav)      {this.iconPath = new vscode.ThemeIcon(BaseItem.favIcon, new vscode.ThemeColor(BaseItem.yellow)); }
+    else if (this.color!=='') {this.iconPath = new vscode.ThemeIcon(this.icon, new vscode.ThemeColor(this.color)); }
+    else                      {this.iconPath = new vscode.ThemeIcon(this.icon); }
+  }
+
+  public addQname(qname: string) { this.qname = qname; }
+
+  public regCmd(qname: string) {
+    this.command = {
+      command: 'fantomDocs.showDetails',
+      title: 'Show data',
+      arguments: [
+          {
+              label: this.label,
+              type: this.type,
+              qname: qname,
+          },
+      ],
+    };
+  }
 
   public isFav: boolean = false
 
   constructor(
     public readonly label: string,
-    public readonly type: FantomDocType,
+    public readonly tyype: FantomDocType,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
   ) {
     super(label, collapsibleState);
-
+    this.type = tyype;
+    
     // Handle favorites 
-    if (favPods.includes(label)) { 
-      console.log("found fav " + label);
-      this.isFav = true 
-      this.iconPath = BaseItem.favIcon 
-    } 
+    if (favPods.includes(label)) { this.isFav = true } 
+
   }
 
-  addKeysToTooltip(data: object) { this.tooltip = `Available keys: ${Object.keys(data).join(', ')}`; }
+  printKeysToTooltip(data: object) { this.tooltip = `Available keys: ${Object.keys(data).join(', ')}`; }
   printObjToTooltip(data: object) { this.tooltip = JSON.stringify(data, null, 2); }
 
 }
@@ -36,14 +90,14 @@ export class BaseItem extends vscode.TreeItem {
 */
 export class GroupItem extends BaseItem {
 
-  static defaultIcon = new vscode.ThemeIcon('symbol-folder');
+  override icon = BaseItem.groupIcon;
 
   constructor(
       public readonly label: string,
       public readonly type: FantomDocType,
   ) {
       super(label, type, vscode.TreeItemCollapsibleState.Collapsed);
-      this.iconPath = GroupItem.defaultIcon;
+      this.makeIcon();
     }
 }
 
@@ -52,17 +106,16 @@ export class GroupItem extends BaseItem {
 */
 export class PodItem extends BaseItem {
 
-  static defaultIcon = new vscode.ThemeIcon('package');
+  override icon = BaseItem.podIcon;
 
   constructor(
       public readonly label: string,
       public readonly type: FantomDocType,
-      public readonly data: { classes: any[] },
+      public readonly data: { qname:string, classes: any[] },
   ) {
       super(label, type, vscode.TreeItemCollapsibleState.Collapsed);
-
-      if (!this.isFav) { this.iconPath = PodItem.defaultIcon; }
-
+      this.makeIcon();
+      this.regCmd(data.qname);
     }
 }
 
@@ -71,10 +124,7 @@ export class PodItem extends BaseItem {
 */
 export class ClassItem extends BaseItem {
 
-  static defaultIcon = new vscode.ThemeIcon('symbol-class');
-  static privateIcon = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('disabledForeground'));
-  static mixinIcon = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('charts.blue'));
-  static abstractIcon = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('charts.red'));
+  override icon = BaseItem.classIcon;
 
   constructor(
       public readonly label: string,
@@ -82,21 +132,18 @@ export class ClassItem extends BaseItem {
       public readonly data: { parent: string, mods: string, qname: string, inherits: string[] }
   ) {
       super(label, type, vscode.TreeItemCollapsibleState.Collapsed);
-      if (!this.isFav) { this.iconPath = ClassItem.defaultIcon; }
-      this.tooltip = data.inherits.reverse().join(' -> ');
+      this.tooltip = data.mods;
+      this.tooltip += "\n"+data.inherits.reverse().join(' -> ');
       this.description = data.parent.split("::")[1] === "Obj" ? "" : data.parent.split("::")[1];
 
       // Handle class types 
-      if (data.mods && data.mods.includes('private')) { 
-        this.iconPath = ClassItem.privateIcon; 
-        this.description += ' -private-'; 
-      } else if (data.mods && data.mods.includes('mixin')) { 
-        this.iconPath = ClassItem.mixinIcon; 
-        this.description += ' -mixin-'; 
-      } else if (data.mods && data.mods.includes('abstract')) {
-        this.iconPath = ClassItem.abstractIcon; 
-        this.description += ' -abstract-'; 
-      }
+      if      (data.mods && data.mods.includes('private')) { this.color = BaseItem.fadedColor;} 
+      else if (data.mods && data.mods.includes('enum')) { this.icon = BaseItem.enumIcon; this.color=BaseItem.enumColor;} 
+      else if (data.mods && data.mods.includes('mixin')) { this.icon = BaseItem.mixinIcon; this.color = BaseItem.mixinColor;} 
+      else if (data.mods && data.mods.includes('abstract')) {this.color = BaseItem.abstractColor;}
+
+      this.makeIcon();
+      this.regCmd(data.qname);
   }
 }
 
@@ -105,13 +152,7 @@ export class ClassItem extends BaseItem {
 */
 export class MethodItem extends BaseItem {
 
-  static defaultIcon = new vscode.ThemeIcon('symbol-method');
-  static privateIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('disabledForeground'));
-  static staticIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('charts.green'));
-  static virtualIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('charts.blue'));
-  static abstractIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('charts.blue'));
-  static overrideIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('charts.blue'));
-  static makeIcon = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('charts.pink'));
+  override icon = 'symbol-method';
 
   constructor(
       public readonly label: string,
@@ -119,33 +160,21 @@ export class MethodItem extends BaseItem {
       public readonly data: { returns: string, mods: string, qname: string},
   ) {
       super(label, type, vscode.TreeItemCollapsibleState.None);
-      this.iconPath = MethodItem.defaultIcon;
-      this.tooltip = data.qname;
+      this.tooltip = data.mods; 
+      this.tooltip += "\n"+data.qname;
       this.description = data.returns.split('::')[1];
 
       // Handle class types 
-      if (this.label==='make') {
-        this.iconPath = MethodItem.makeIcon; 
-        this.description += ' -make-'; 
-      } else if (data.mods && data.mods.includes('private')) { 
-        this.iconPath = MethodItem.privateIcon; 
-        this.description += ' -private-'; 
-      } else if (data.mods && data.mods.includes('static')) { 
-        this.iconPath = MethodItem.staticIcon; 
-        this.description += ' -static-'; 
-      } else if (data.mods && data.mods.includes('abstract')) {
-        this.iconPath = MethodItem.abstractIcon; 
-        this.description += ' -abstract-'; 
-      } else if (data.mods && data.mods.includes('virtual')) {
-        this.iconPath = MethodItem.virtualIcon; 
-        this.description += ' -virtual-'; 
-      } else if (data.mods && data.mods.includes('once')) {
-        this.iconPath = MethodItem.makeIcon; 
-        this.description += ' -once-'; 
-      } else if (data.mods && data.mods.includes('override')) {
-        this.iconPath = MethodItem.overrideIcon; 
-        this.description += ' -override-'; 
-      }
+      if      (this.label==='make') {this.color = BaseItem.constructorColor;} 
+      else if (data.mods && data.mods.includes('private')) {this.color = BaseItem.privateColor;} 
+      else if (data.mods && data.mods.includes('once')) {this.color = BaseItem.constructorColor;} 
+      else if (data.mods && data.mods.includes('static')) { this.color = BaseItem.staticColor;} 
+      else if (data.mods && data.mods.includes('abstract')) {this.color = BaseItem.abstractColor;} 
+      else if (data.mods && data.mods.includes('virtual')) {this.color = BaseItem.virtualColor;} 
+      else if (data.mods && data.mods.includes('override')) {this.color = BaseItem.overrideColor;}
+
+      this.makeIcon();
+      this.regCmd(data.qname);
     }
 }
 
@@ -154,47 +183,30 @@ export class MethodItem extends BaseItem {
 */
 export class FieldItem extends BaseItem {
 
-  static defaultIcon = new vscode.ThemeIcon('symbol-field');
-  static privateIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('disabledForeground'));
-  static staticIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('charts.green'));
-  static virtualIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('charts.blue'));
-  static abstractIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('charts.blue'));
-  static overrideIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('charts.blue'));
-  static makeIcon = new vscode.ThemeIcon('symbol-field', new vscode.ThemeColor('charts.pink'));
+  override icon = 'symbol-field';
 
   constructor(
     public readonly label: string,
     public readonly type: FantomDocType,
-    public readonly data: { mods: string, qname: string},
+    public readonly data: { mods: string, qname: string, returns: string },
 ) {
     super(label, type, vscode.TreeItemCollapsibleState.None);
-    this.iconPath = FieldItem.defaultIcon;
-    this.tooltip = data.qname;
-    this.description = "";
+    this.tooltip = data.mods; 
+    this.tooltip += "\n"+data.qname;
+    
+    this.description = data.returns; //.split('::')[1];
 
     // Handle class types 
-    if (this.label==='make') {
-      this.iconPath = FieldItem.makeIcon; 
-      this.description += ' -make-'; 
-    } else if (data.mods && data.mods.includes('private')) { 
-      this.iconPath = FieldItem.privateIcon; 
-      this.description += ' -private-'; 
-    } else if (data.mods && data.mods.includes('static')) { 
-      this.iconPath = FieldItem.staticIcon; 
-      this.description += ' -static-'; 
-    } else if (data.mods && data.mods.includes('abstract')) {
-      this.iconPath = FieldItem.abstractIcon; 
-      this.description += ' -abstract-'; 
-    } else if (data.mods && data.mods.includes('virtual')) {
-      this.iconPath = FieldItem.virtualIcon; 
-      this.description += ' -virtual-'; 
-    } else if (data.mods && data.mods.includes('once')) {
-      this.iconPath = FieldItem.makeIcon; 
-      this.description += ' -once-'; 
-    } else if (data.mods && data.mods.includes('override')) {
-      this.iconPath = FieldItem.overrideIcon; 
-      this.description += ' -override-'; 
-    }
+    if      (this.label==='make') {this.color = BaseItem.constructorColor; } 
+    else if (data.mods && data.mods.includes('private')) {this.color = BaseItem.privateColor;} 
+    else if (data.mods && data.mods.includes('once')) {this.color = BaseItem.constructorColor;} 
+    else if (data.mods && data.mods.includes('static')) { this.color = BaseItem.staticColor;} 
+    else if (data.mods && data.mods.includes('abstract')) {this.color = BaseItem.abstractColor;} 
+    else if (data.mods && data.mods.includes('virtual')) {this.color = BaseItem.virtualColor;} 
+    else if (data.mods && data.mods.includes('override')) {this.color = BaseItem.overrideColor;}
+
+    this.makeIcon();
+    this.regCmd(data.qname);
 
   }
 }

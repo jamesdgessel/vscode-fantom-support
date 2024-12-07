@@ -34,7 +34,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<BaseItem> {
             parent: string;
             inherits: string[];
             methods: { name: string; type: string; qname: string; public: Boolean; mods: string; returns:string;}[];
-            fields: { name: string; type: string; qname: string; public: Boolean; mods: string;}[];
+            fields: { name: string; type: string; qname: string; public: Boolean; mods: string; returns:string;}[];
         }[];
     }[] = [];
 
@@ -367,7 +367,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
      */
     showSlotDetails(label: string, type: string, qname: string) {
         this.logDebug(` ---------------------------------------------------------------------- `);
-        this.logDebug(` --- Searching for "${qname}" --- `);
+        this.logDebug(` --- Searching for ${label} of type ${type} ${qname} --- `);
 
         // Load slot details from JSON file
         const jsonFilePath = path.join(this.context.extensionPath, 'out/docs', 'fantom-docs.json');
@@ -379,7 +379,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
         {
             this.logDebug(` > Finding details for Pod: ${label}`);
             // Find the pod details
-            detail = slotDetails.find((item: any) => item.name === label );
+            detail = slotDetails.find((item: any) => item.label === label );
 
         } 
         else if (type === FantomDocType.Class) 
@@ -398,7 +398,7 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
         } 
         else if (type === FantomDocType.Method || type === FantomDocType.Field) 
         {
-            this.logDebug(` > Finding details for Class: ${qname}`);
+            this.logDebug(` > Finding details for ${type}: ${qname}`);
             // Extract pod name from qname and find the pod details
             const podName = qname.split('::')[0];
             const className = qname.split('::')[1].split(".")[0];

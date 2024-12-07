@@ -9,7 +9,7 @@ import {
     TransportKind,
 } from 'vscode-languageclient/node';
 import { FantomDocsProvider, FantomDocsDetailsProvider } from './providers/fantomDocsProvider';
-import { FantomDocItem, FantomDocType } from './providers/fantomDocsProvider';
+import { BaseItem } from './providers/fantomTreeItem';
 
 let client: LanguageClient;
 
@@ -99,26 +99,26 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(webviewViewProvider);
 
     // Register Commands
-    const showDetailsCommand = vscode.commands.registerCommand('fantomDocs.showDetails', (item: FantomDocItem) => {
+    const showDetailsCommand = vscode.commands.registerCommand('fantomDocs.showDetails', (item: BaseItem) => {
         if (!item) {
             logDebug('No item selected');
             return;
         }
         logDebug(`** Details requested for ${item.qname} **`);
         detailsProvider.showSlotDetails(
-            item.label || 'Unnamed Item',
-            item.type || 'No type',
-            item.qname || 'No qname'
+            item.label || 'No label',
+            item.type || 'No qname',
+            item.qname || 'No qname',
         );
     });
     context.subscriptions.push(showDetailsCommand);
 
-    const addFavCommand = vscode.commands.registerCommand('fantomDocs.addFav', (item: FantomDocItem) => {
+    const addFavCommand = vscode.commands.registerCommand('fantomDocs.addFav', (item: BaseItem) => {
         fantomDocsProvider.addFavPod(item);
     });
     context.subscriptions.push(addFavCommand);
 
-    const removeFavCommand = vscode.commands.registerCommand('fantomDocs.removeFav', (item: FantomDocItem) => {
+    const removeFavCommand = vscode.commands.registerCommand('fantomDocs.removeFav', (item: BaseItem) => {
         fantomDocsProvider.removeFavPod(item);
     });
     context.subscriptions.push(removeFavCommand);
