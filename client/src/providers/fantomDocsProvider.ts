@@ -4,129 +4,37 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LANGUAGE_SERVER_ID } from '../extension'
+import { BaseItem, GroupItem, PodItem, ClassItem, MethodItem, FieldItem } from './fantomTreeItem';
+import { FantomDocType } from './fantomDocsStructure';
+import { podGroup, groups } from './fantomDocsStructure';
 
 let favPods: string[] = vscode.workspace.getConfiguration('fantomLanguageServer').fantomDocs.favPods || ['sys', 'domkit'];
 let debug: boolean = vscode.workspace.getConfiguration('fantomLanguageServer').fantomDocs.debug || false;
 
 /**
- * Enum representing the types of items in the Fantom Docs tree.
- */
-export enum FantomDocType {
-    Group = 'group',
-    Pod = 'pod',
-    Class = 'class',
-    Method = 'method',
-    Field = 'field',
-}
-
-
-/**
- * Represents a single item in the Fantom Docs tree.
- */
-export class FantomDocItem extends vscode.TreeItem {
-    group?: string;
-    private?: boolean;
-    static?: boolean; 
-    isFav: boolean = false;
-    
-    constructor(
-        public readonly label: string,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly type: FantomDocType,
-        public readonly qname: string,
-        public readonly documentation: string,
-        public readonly details: { name: string; type: string; qname: string; public: Boolean; base?: string },
-        public readonly parent?: FantomDocItem
-    ) {
-        super(label, collapsibleState);
-
-        this.iconPath = this.getIconPath(type);
-        this.tooltip = this.qname;
-
-        if (this.type === FantomDocType.Method || this.type === FantomDocType.Field) {
-            const podName = this.qname.split('::')[0];
-            const parentPodName = this.parent?.qname.split('::')[0]; // Assuming parent pod name is part of parent's qname
-            if (podName !== parentPodName) {
-            this.description = ` <- ${podName}`;
-            }
-            if (this.details.public === false) {
-                this.description = (this.description || '') + ' [private]';
-            }
-        }
-
-        if (this.type === FantomDocType.Class) {
-            if (this.details.public == false) {
-            this.description = 'Private';
-            this.iconPath = new vscode.ThemeIcon('symbol-class', new vscode.ThemeColor('disabledForeground'));
-            if (this.details.base) {
-                this.description += ` (Base: ${this.details.base})`;
-            }
-            }
-        }
-
-        if (this.type === FantomDocType.Pod) {
-            this.group = podGroup(this.label);
-            this.description = this.group
-            if (favPods.includes(this.label)) {
-                this.isFav = true;
-                this.iconPath = new vscode.ThemeIcon('star-full', new vscode.ThemeColor('charts.yellow'));
-            }
-        }
-
-        // Fix the command structure
-        this.command = {
-            command: 'fantomDocs.showDetails',
-            title: 'Show Details',
-            arguments: [
-                {
-                    label: this.label,
-                    type: this.type,
-                    documentation: this.documentation || 'No docs yet...', 
-                    qname: this.qname,
-                },
-            ],
-        };
-    }
-
-    private getIconPath(type: FantomDocType): vscode.ThemeIcon {
-        switch (type) {
-            case FantomDocType.Pod:
-                return new vscode.ThemeIcon('package');
-            case FantomDocType.Class:
-                return new vscode.ThemeIcon('symbol-class');
-            case FantomDocType.Method:
-                return new vscode.ThemeIcon('symbol-method');
-            case FantomDocType.Field:
-                return new vscode.ThemeIcon('symbol-field');
-            case FantomDocType.Group:
-                return new vscode.ThemeIcon('symbol-folder');
-            default:
-                return new vscode.ThemeIcon('question');
-        }
-    }
-}
-
-/**
  * Provides data for the Fantom Docs tree view.
  */
-export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<FantomDocItem | undefined | void> = new vscode.EventEmitter<
-        FantomDocItem | undefined | void
+export class FantomDocsProvider implements vscode.TreeDataProvider<BaseItem> {
+    private _onDidChangeTreeData: vscode.EventEmitter<BaseItem | undefined | void> = new vscode.EventEmitter<
+        BaseItem | undefined | void
     >();
-    readonly onDidChangeTreeData: vscode.Event<FantomDocItem | undefined | void> = this._onDidChangeTreeData.event;
+    readonly onDidChangeTreeData: vscode.Event<BaseItem | undefined | void> = this._onDidChangeTreeData.event;
 
     private pods: {
         name: string;
         type: string;
         qname: string;
-        group: string
+        group: string;
         classes: {
             name: string;
             type: string;
             qname: string;
             public: Boolean;
-            methods: { name: string; type: string; qname: string; public: Boolean}[];
-            fields: { name: string; type: string; qname: string; public: Boolean }[];
+            mods: string;
+            parent: string;
+            inherits: string[];
+            methods: { name: string; type: string; qname: string; public: Boolean; mods: string; returns:string;}[];
+            fields: { name: string; type: string; qname: string; public: Boolean; mods: string;}[];
         }[];
     }[] = [];
 
@@ -169,32 +77,22 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
     /**
      *  Updates a specific tree item.
      */
-    updateTreeItem(item: FantomDocItem): void {
+    updateTreeItem(item: BaseItem): void {
         this.logDebug(`Updating tree item: ${item.label}`);
         this._onDidChangeTreeData.fire(item);
     }
 
-    getTreeItem(element: FantomDocItem): vscode.TreeItem {
+    getTreeItem(element: BaseItem): vscode.TreeItem {
         // this.logDebug(`Getting tree item for: ${element.label}`);
         return element;
     }
 
-    getChildren(element?: FantomDocItem): Thenable<FantomDocItem[]> {
+    getChildren(element?: BaseItem): Thenable<BaseItem[]> {
         this.logDebug('Getting children for element: ' + (element ? element.label : 'root'));
         if (!element) {
             // Root elements: Groups
             return Promise.resolve(
-                groups.map(
-                    (grp) =>
-                        new FantomDocItem(
-                            grp,
-                            vscode.TreeItemCollapsibleState.Collapsed,
-                            FantomDocType.Group,
-                            grp,
-                            `Children for Group: ${grp}`,
-                            { name: grp, type: 'Group', qname: grp, public: true }
-                        )
-                )
+                groups.map((grp) =>new GroupItem(grp, FantomDocType.Group))
             );
         }
 
@@ -210,17 +108,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             if (!aFav && bFav) return 1;
                             return a.name.localeCompare(b.name);
                         })
-                        .map(
-                            (pod) =>
-                                new FantomDocItem(
-                                    pod.name,
-                                    vscode.TreeItemCollapsibleState.Collapsed,
-                                    FantomDocType.Pod,
-                                    `pod: ${pod.qname}`,
-                                    `Children for Pod: ${pod.name}`,
-                                    { ...pod, public: true }
-                                )
-                        )
+                        .map((pod) => new PodItem( pod.name, FantomDocType.Pod, pod ))
                 );
             case FantomDocType.Pod:
                 // Children: Classes
@@ -236,18 +124,7 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                             // Sort alphabetically by name
                             return a.name.localeCompare(b.name);
                         })
-                        .map(
-                            (cls) =>
-                                new FantomDocItem(
-                                    cls.name,
-                                    vscode.TreeItemCollapsibleState.Collapsed,
-                                    FantomDocType.Class,
-                                    cls.qname,
-                                    `Children for Class: ${cls.name}`,
-                                    cls,
-                                    element // Set parent as the current pod element
-                                )
-                        )
+                        .map((cls) => new ClassItem(cls.name, FantomDocType.Class, cls))
                 );
             case FantomDocType.Class:
                 // Children: Fields and Methods
@@ -257,31 +134,8 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
                 const methods = classItem?.methods || [];
                 const fields = classItem?.fields || [];
 
-                const fieldItems = fields.map(
-                    (field) =>
-                        new FantomDocItem(
-                            field.name,
-                            vscode.TreeItemCollapsibleState.None,
-                            FantomDocType.Field,
-                            field.qname,
-                            field.type,
-                            field,
-                            element // Set parent as the current class element
-                        )
-                );
-
-                const methodItems = methods.map(
-                    (method) =>
-                        new FantomDocItem(
-                            method.name,
-                            vscode.TreeItemCollapsibleState.None,
-                            FantomDocType.Method,
-                            method.qname,
-                            method.type,
-                            method,
-                            element // Set parent as the current class element
-                        )
-                );
+                const fieldItems =  fields.map((field)   => new FieldItem(field.name,  FantomDocType.Field,  field));
+                const methodItems = methods.map((method) => new MethodItem(method.name, FantomDocType.Method, method));
 
                 // Combine fields and methods, then sort by type, name, and inherited status
                 const sortedChildren = [...fieldItems, ...methodItems].sort((a, b) => {
@@ -312,13 +166,13 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
     /**
      * Searches the tree for items matching the given string.
      * @param query The search string.
-     * @returns A list of matching FantomDocItems.
+     * @returns A list of matching BaseItems.
      */
-    search(query: string): Thenable<FantomDocItem[]> {
-        const matches: FantomDocItem[] = [];
+    search(query: string): Thenable<BaseItem[]> {
+        const matches: BaseItem[] = [];
         const lowerQuery = query.toLowerCase();
     
-        const searchInItems = async (items: Thenable<FantomDocItem[]> | FantomDocItem[]) => {
+        const searchInItems = async (items: Thenable<BaseItem[]> | BaseItem[]) => {
             const resolvedItems = items instanceof Promise ? await items : items; // Resolve the promise if needed
     
             for (const item of resolvedItems) {
@@ -346,10 +200,10 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
     /**
      * Adds a pod to the favorites.
-     * @param item The FantomDocItem representing the pod.
+     * @param item The BaseItem representing the pod.
      * @param provider The FantomDocsProvider instance.
      */
-    addFavPod(item: FantomDocItem) {
+    addFavPod(item: BaseItem) {
         const config = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
         let favPods: string[] = config.get<string[]>('fantomDocs.favPods', []);
         this.logDebug(`Current favorite pods before adding: ${JSON.stringify(favPods)}`);
@@ -374,10 +228,10 @@ export class FantomDocsProvider implements vscode.TreeDataProvider<FantomDocItem
 
     /**
      * Removes a pod from the favorites.
-     * @param item The FantomDocItem representing the pod.
+     * @param item The BaseItem representing the pod.
      * @param provider The FantomDocsProvider instance.
      */
-    removeFavPod(item: FantomDocItem) {
+    removeFavPod(item: BaseItem) {
         const config = vscode.workspace.getConfiguration(LANGUAGE_SERVER_ID);
         let favPods: string[] = config.get<string[]>('fantomDocs.favPods', []);
         this.logDebug(`Current favorite pods before removing: ${JSON.stringify(favPods)}`);
@@ -716,207 +570,3 @@ export class FantomDocsDetailsProvider implements vscode.WebviewViewProvider {
     
 }
 
-
-export const fantomPods = [
-    "asn1",
-    "build",
-    "compiler",
-    "compilerDoc",
-    "compilerEs",
-    "compilerJava",
-    "compilerJs",
-    "concurrent",
-    "crypto",
-    "cryptoJava",
-    "dom",
-    "domkit",
-    "email",
-    "fandoc",
-    "fanr",
-    "fansh",
-    "graphics",
-    "graphicsJava",
-    "inet",
-    "math",
-    "nodeJs",
-    "sql",
-    "syntax",
-    "sys",
-    "util",
-    "web",
-    "wisp",
-    "xml",
-    "yaml"
-]
-
-export const haxallPods = [
-    "arcbeam",
-    "auth",
-    "axon",
-    "axonsh",
-    "def",
-    "defc",
-    "docker",
-    "docXeto",
-    "folio",
-    "ftp",
-    "haystack",
-    "hx",
-    "hxApi",
-    "hxClone",
-    "hxCluster",
-    "hxConn",
-    "hxCrypto",
-    "hxd",
-    "hxDocker",
-    "hxEcobee",
-    "hxFolio",
-    "hxHaystack",
-    "hxHttp",
-    "hxIO",
-    "hxMath",
-    "hxModbus",
-    "hxMqtt",
-    "hxNest",
-    "hxObix",
-    "hxPlatform",
-    "hxPlatformNetwork",
-    "hxPlatformSerial",
-    "hxPlatformTime",
-    "hxPoint",
-    "hxPy",
-    "hxSedona",
-    "hxShell",
-    "hxSql",
-    "hxStore",
-    "hxTask",
-    "hxTools",
-    "hxUser",
-    "hxUtil",
-    "hxXeto",
-    "hxXml",
-    "mqtt",
-    "oauth2",
-    "obix",
-    "obs",
-    "ph",
-    "phIct",
-    "phIoT",
-    "phScience",
-    "rdf",
-    "sedona",
-    "xeto",
-    "xetoc",
-    "xetoEnv",
-    "xetoTools"
-]
-
-export const skysparkPods = [
-    "arcbeamExt",
-    "arcExt",
-    "arcKitExt",
-    "bacnet",
-    "benchmark",
-    "certAuthMod",
-    "cloneExt",
-    "clusterAuthMod",
-    "clusterMod",
-    "codemirror",
-    "connExt",
-    "debug",
-    "demoExt",
-    "demogen",
-    "devMod",
-    "docFresco",
-    "docgen",
-    "docHaxall",
-    "docHaystack",
-    "docSkySpark",
-    "docviewer",
-    "dropbox",
-    "energyExt",
-    "energyStarExt",
-    "eventExt",
-    "fileMod",
-    "fileRepo",
-    "folio3",
-    "folioStore",
-    "foliox",
-    "geoExt",
-    "ghgExt",
-    "googleDrive",
-    "greenButtonExt",
-    "hisExt",
-    "hisKitExt",
-    "hvacExt",
-    "hxBacnet",
-    "hxOpc",
-    "hxSnmp",
-    "installMod",
-    "iotMod",
-    "jamesExt",
-    "javautil",
-    "jobExt",
-    "jsonschema",
-    "kwLinkFCoreExt",
-    "ldapMod",
-    "lintMod",
-    "mapExt",
-    "mapkit",
-    "mib",
-    "migrate",
-    "misc",
-    "mlExt",
-    "modbusExt",
-    "navMod",
-    "notifyExt",
-    "opc",
-    "pdf",
-    "pim",
-    "podInspector",
-    "projMod",
-    "provExt",
-    "replMod",
-    "ruleExt",
-    "samlSsoMod",
-    "scheduleExt",
-    "skyarc",
-    "skyarcd",
-    "slf4j_nop",
-    "smileCore",
-    "stackhub",
-    "svg",
-    "tariffExt",
-    "testDomkit",
-    "tie",
-    "tools",
-    "ui",
-    "uiBuilder",
-    "uiDev",
-    "uiFonts",
-    "uiIcons",
-    "uiMisc",
-    "uiMod",
-    "uiPlatform",
-    "userMod",
-    "vdom",
-    "view",
-    "viz",
-    "weatherExt",
-    "xobjMod",
-    "xqueryMod"
-]
-
-const groups = ["Fantom", "Haxall", "SkySpark", "Other"]
-
-export function podGroup(pod: string): string {
-    if (fantomPods.includes(pod)) {
-        return "Fantom"
-    } else if (haxallPods.includes(pod)) {
-        return "Haxall"
-    } else if (skysparkPods.includes(pod)) {
-        return "SkySpark"
-    } else {
-        return "Other"
-    }
-}

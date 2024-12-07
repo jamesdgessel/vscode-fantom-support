@@ -164,7 +164,7 @@ class DocBuilder
 
     static [Str:Obj?]? reduceToNavTree([Str:Obj?]? json) 
     {
-        Str[] keepKeys := ["name", "type", "qname", "public","returns"]
+        Str[] keepKeys := ["name", "type", "qname", "public","returns","mods","parent","inherits"]
         Str[] iterateKeys := ["classes", "methods", "fields"]
         tree := json.mapNotNull |v,k|  
         { 
@@ -221,6 +221,6 @@ class DocBuilder
 
         if (debug()) echo("done")
         
-        echo(outDir.toStr)
+        // echo(outDir.toStr)
     }
 }
